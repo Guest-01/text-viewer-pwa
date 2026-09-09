@@ -1,0 +1,11 @@
+{
+  "name": "text-viewer-pwa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "모바일용 텍스트(txt) 뷰어 PWA",
+  "scripts": {
+    "start": "node server.js",
+    "icons": "node scripts/make-icons.js",
+    "demo": "node scripts/make-demo.js"
+  }
+}

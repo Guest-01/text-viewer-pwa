@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>텍스트 뷰어</title>
+  <meta name="description" content="모바일용 txt 텍스트 뷰어 PWA">
+  <meta name="theme-color" id="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="텍스트 뷰어">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body data-theme="light" data-screen="library">
+  <svg hidden aria-hidden="true">
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15-5-2.18L7 18V5h10v13z"/></symbol>
+    <symbol id="i-bookmark-on" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+    <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+    <symbol id="i-tune" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3 5 6.99h3V14h2V6.99h3L9 3z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
+  </svg>
+
+  <div id="app">
+    <!-- 서재 -->
+    <section id="library" class="screen library">
+      <header class="app-bar">
+        <h1>텍스트 뷰어</h1>
+        <button id="btn-install" class="btn-text" hidden><svg><use href="#i-download"/></svg>설치</button>
+      </header>
+      <main class="library-body">
+        <ul id="book-list" class="book-list"></ul>
+        <div id="library-empty" class="empty" hidden>
+          <svg class="empty-icon"><use href="#i-file"/></svg>
+          <p>아직 열어본 파일이 없습니다.</p>
+          <p class="hint">아래 <b>파일 열기</b> 버튼으로 txt 파일을 열거나, 앱을 설치한 뒤 파일 관리자에서 txt 파일을 <b>공유</b>해 이 앱으로 보내세요.</p>
+          <div class="demo-buttons">
+            <button class="btn-secondary" data-demo="./demo/sample-utf8.txt">데모 열기 (UTF-8)</button>
+            <button class="btn-secondary" data-demo="./demo/sample-euckr.txt">데모 열기 (EUC-KR)</button>
+          </div>
+          <p class="hint small">목록의 항목을 길게 누르면 삭제할 수 있습니다.</p>
+        </div>
+      </main>
+      <button id="btn-open" class="fab"><svg><use href="#i-add"/></svg>파일 열기</button>
+      <input type="file" id="file-input" accept=".txt,text/plain" multiple hidden>
+    </section>
+
+    <!-- 뷰어 -->
+    <section id="reader" class="screen reader" hidden>
+      <div id="viewport" class="viewport mode-page"></div>
+      <header class="bar top-bar">
+        <button class="icon-btn" id="btn-back" aria-label="서재로"><svg><use href="#i-back"/></svg></button>
+        <div class="title" id="reader-title"></div>
+        <button class="icon-btn" id="btn-bookmark" aria-label="책갈피 추가"><svg><use href="#i-bookmark"/></svg></button>
+        <button class="icon-btn" id="btn-search" aria-label="검색"><svg><use href="#i-search"/></svg></button>
+        <button class="icon-btn" id="btn-more" aria-label="더보기"><svg><use href="#i-more"/></svg></button>
+      </header>
+      <footer class="bar bottom-bar">
+        <div class="progress-row">
+          <input type="range" id="progress" min="0" max="10000" value="0" aria-label="진행률">
+          <span id="progress-label" class="progress-label">0.0%</span>
+        </div>
+        <div class="actions-row">
+          <button class="action-btn" id="btn-bookmarks"><svg><use href="#i-list"/></svg><span>책갈피</span></button>
+          <button class="action-btn" id="btn-mode"><svg><use href="#i-swap"/></svg><span>스크롤</span></button>
+          <button class="action-btn" id="btn-settings"><svg><use href="#i-tune"/></svg><span>설정</span></button>
+        </div>
+      </footer>
+    </section>
+
+    <!-- 설정 시트 -->
+    <div class="overlay" id="ov-settings" hidden>
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="setting-row">
+          <span class="setting-label">글자 크기</span>
+          <div class="stepper"><button id="font-size-dec">−</button><span id="val-font-size">18</span><button id="font-size-inc">+</button></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">줄간격</span>
+          <div class="stepper"><button id="line-height-dec">−</button><span id="val-line-height">1.7</span><button id="line-height-inc">+</button></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">여백</span>
+          <div class="stepper"><button id="margin-dec">−</button><span id="val-margin">16</span><button id="margin-inc">+</button></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">글꼴</span>
+          <div class="segmented">
+            <button data-set="font" data-value="sans">고딕</button>
+            <button data-set="font" data-value="serif" class="serif">명조</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">테마</span>
+          <div class="segmented">
+            <button data-set="theme" data-value="light">밝게</button>
+            <button data-set="theme" data-value="dark">어둡게</button>
+            <button data-set="theme" data-value="sepia">세피아</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">보기</span>
+          <div class="segmented">
+            <button data-set="mode" data-value="page">페이지</button>
+            <button data-set="mode" data-value="scroll">스크롤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 검색 패널 -->
+    <div class="overlay" id="ov-search" hidden>
+      <div class="panel">
+        <form class="panel-head" id="search-form">
+          <button type="button" class="icon-btn" data-close aria-label="닫기"><svg><use href="#i-back"/></svg></button>
+          <input type="search" id="search-input" placeholder="본문 검색" autocomplete="off" enterkeyhint="search">
+          <button type="submit" class="icon-btn" aria-label="검색"><svg><use href="#i-search"/></svg></button>
+        </form>
+        <div class="panel-status" id="search-status"></div>
+        <ul class="row-list" id="search-results"></ul>
+      </div>
+    </div>
+
+    <!-- 책갈피 패널 -->
+    <div class="overlay" id="ov-bookmarks" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <button type="button" class="icon-btn" data-close aria-label="닫기"><svg><use href="#i-back"/></svg></button>
+          <h2>책갈피</h2>
+        </div>
+        <div class="panel-status" id="bookmark-empty" hidden>책갈피가 없습니다. 읽는 중 상단의 책갈피 버튼을 누르세요.</div>
+        <ul class="row-list" id="bookmark-list"></ul>
+      </div>
+    </div>
+
+    <!-- 더보기 메뉴 -->
+    <div class="overlay" id="ov-more" hidden>
+      <div class="sheet menu">
+        <div class="sheet-handle"></div>
+        <div class="info-box">
+          <div><span class="muted">인코딩</span> <span id="info-encoding"></span></div>
+          <div><span class="muted">크기</span> <span id="info-size"></span></div>
+        </div>
+        <button class="menu-item" id="menu-encoding">인코딩 변경</button>
+        <button class="menu-item" id="menu-library">서재로 가기</button>
+      </div>
+    </div>
+
+    <!-- 인코딩 선택 -->
+    <div class="overlay" id="ov-encoding" hidden>
+      <div class="sheet menu">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title">인코딩</h2>
+        <ul class="row-list" id="encoding-list"></ul>
+      </div>
+    </div>
+
+    <!-- 삭제 확인 -->
+    <div class="overlay" id="ov-confirm" hidden>
+      <div class="sheet menu">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title" id="confirm-title"></h2>
+        <p class="hint">이 파일과 읽던 위치, 책갈피를 삭제합니다.</p>
+        <button class="menu-item danger" id="confirm-delete">삭제</button>
+        <button class="menu-item" data-close>취소</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
