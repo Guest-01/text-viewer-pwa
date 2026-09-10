@@ -7,8 +7,9 @@ import { toast, openOverlay, closeOverlay, onLongPress, formatBytes, formatDate,
 
 const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
-const DEFAULT_SETTINGS = { fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', theme: 'light', mode: 'page', spread: 'auto' };
+const DEFAULT_SETTINGS = { fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', theme: 'system', mode: 'page', spread: 'auto' };
 const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const MAX_SEARCH_RESULTS = 300;
 
 const $ = (sel) => document.querySelector(sel);
@@ -35,9 +36,16 @@ function loadSettings() {
 function saveSettings() {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
 }
+// 'system'은 기기 테마(prefers-color-scheme)를 따른다. index.html의 인라인 스크립트와 같은 규칙.
+function resolveTheme() {
+  const t = state.settings.theme;
+  if (t === 'system' || !THEME_COLORS[t]) return darkQuery.matches ? 'dark' : 'light';
+  return t;
+}
 function applyTheme() {
-  document.body.dataset.theme = state.settings.theme;
-  $('#theme-color').setAttribute('content', THEME_COLORS[state.settings.theme] || '#ffffff');
+  const t = resolveTheme();
+  document.documentElement.dataset.theme = t;
+  $('#theme-color').setAttribute('content', THEME_COLORS[t]);
 }
 function applyReaderStyle() {
   const s = state.settings;
@@ -431,6 +439,7 @@ async function init() {
   applyTheme();
   applyReaderStyle();
   bindSettings();
+  darkQuery.addEventListener('change', () => { if (state.settings.theme === 'system') applyTheme(); });
 
   // 서재
   $('#btn-open').addEventListener('click', () => $('#file-input').click());

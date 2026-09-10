@@ -1,5 +1,5 @@
 // Service Worker: 앱 셸 캐시(네트워크 우선, 오프라인 시 캐시) + 정적 자산(폰트) 캐시 우선 + Web Share Target 처리
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `tv-${VERSION}`;
 const SHARED_CACHE = 'tv-shared';
 const ASSETS = [

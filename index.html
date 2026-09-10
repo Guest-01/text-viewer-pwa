@@ -1,8 +1,20 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <!-- 앱이 직접 밝음/어둠을 처리한다고 선언해 브라우저(삼성 인터넷·Chrome)의 강제 다크 모드가 색을 덮어쓰지 않게 한다 -->
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // 첫 그리기 전에 저장된 테마를 적용해 어두운 기기에서 흰 화면이 깜빡이지 않게 한다 (app.js applyTheme와 동일한 규칙)
+    (function () {
+      try {
+        var t = JSON.parse(localStorage.getItem('tv.settings') || '{}').theme || 'system';
+        if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
   <title>텍스트 뷰어</title>
   <meta name="description" content="모바일용 txt 텍스트 뷰어 PWA">
   <meta name="theme-color" id="theme-color" content="#ffffff">
@@ -15,7 +27,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./css/style.css">
 </head>
-<body data-theme="light" data-screen="library">
+<body data-screen="library">
   <!-- UI 아이콘: Material Symbols Rounded (Apache License 2.0, https://fonts.google.com/icons) -->
   <svg hidden aria-hidden="true">
     <symbol id="i-back" viewBox="0 -960 960 960"><path d="m313-440 196 196q12 12 11.5 28T508-188q-12 11-28 11.5T452-188L188-452q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l264-264q11-11 27.5-11t28.5 11q12 12 12 28.5T508-715L313-520h447q17 0 28.5 11.5T800-480q0 17-11.5 28.5T760-440H313Z"/></symbol>
@@ -106,6 +118,7 @@
         <div class="setting-row">
           <span class="setting-label">테마</span>
           <div class="segmented">
+            <button data-set="theme" data-value="system">기기</button>
             <button data-set="theme" data-value="light">밝게</button>
             <button data-set="theme" data-value="dark">어둡게</button>
             <button data-set="theme" data-value="sepia">세피아</button>

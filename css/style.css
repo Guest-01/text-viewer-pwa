@@ -7,7 +7,9 @@
   font-display: swap;
 }
 
+/* 테마는 <html data-theme>에 실린다. color-scheme으로 네이티브 컨트롤·스크롤바도 앱 테마를 따르게 한다. */
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --fg: #1f2328;
   --muted: #6b7280;
@@ -23,7 +25,8 @@
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   --font-serif: "TV Serif", "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", "Apple Myungjo", Batang, serif;
 }
-body[data-theme="dark"] {
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #121212;
   --fg: #d6d6d6;
   --muted: #9ca3af;
@@ -36,7 +39,7 @@ body[data-theme="dark"] {
   --surface-2: #262626;
   --mark: #7c5e00;
 }
-body[data-theme="sepia"] {
+:root[data-theme="sepia"] {
   --bg: #f4ecd8;
   --fg: #5b4636;
   --muted: #8b7355;
