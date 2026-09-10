@@ -9,6 +9,7 @@ export function isOverlayOpen() {
 export function openOverlay(id, onClose) {
   const el = document.getElementById(id);
   if (!el || stack.some((s) => s.el === el)) return;
+  hideToast(); // 시트 위에 이전 토스트가 겹쳐 보이지 않게
   el.hidden = false;
   requestAnimationFrame(() => el.classList.add('open'));
   stack.push({ el, onClose });

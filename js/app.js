@@ -113,14 +113,37 @@ async function showLibrary() {
         <div class="book-title">${escapeHtml(b.title)}</div>
         <div class="book-meta">${pct}% · ${formatBytes(b.size)} · ${formatDate(b.lastOpenedAt)}</div>
         <div class="book-progress"><span style="width:${pct}%"></span></div>
-      </div>`;
+      </div>
+      <button class="icon-btn book-more" aria-label="파일 메뉴"><svg><use href="#i-more"/></svg></button>`;
     li.addEventListener('click', () => {
       state.enteredFromLibrary = true;
       location.hash = `read/${encodeURIComponent(b.id)}`;
     });
-    onLongPress(li, () => confirmDelete(b));
+    li.querySelector('.book-more').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openItemMenu(b);
+    });
+    onLongPress(li, () => openItemMenu(b));
     list.appendChild(li);
   }
+}
+
+// 서재 항목 메뉴 (⋮ 또는 길게 누르기)
+function openItemMenu(book) {
+  $('#item-title').textContent = book.title;
+  const pct = Math.round((book.progress || 0) * 1000) / 10;
+  $('#item-meta').textContent = `${pct}% 읽음 · ${formatBytes(book.size)} · ${encodingLabel(book.encoding)}`;
+  $('#item-restart').onclick = async () => {
+    closeOverlay();
+    await db.putBook({ ...book, position: 0, progress: 0 });
+    state.enteredFromLibrary = true;
+    location.hash = `read/${encodeURIComponent(book.id)}`;
+  };
+  $('#item-delete').onclick = () => {
+    closeOverlay();
+    setTimeout(() => confirmDelete(book), 30);
+  };
+  openOverlay('ov-item');
 }
 
 function confirmDelete(book) {
@@ -130,7 +153,9 @@ function confirmDelete(book) {
     await db.deleteBook(book.id);
     if (localStorage.getItem(LAST_BOOK_KEY) === book.id) localStorage.removeItem(LAST_BOOK_KEY);
     toast('삭제했습니다');
-    showLibrary();
+    // 뷰어에서 지운 경우 서재로 돌아간다
+    if (state.book && state.book.id === book.id) location.hash = '';
+    else showLibrary();
   };
   openOverlay('ov-confirm');
 }
@@ -578,9 +603,20 @@ async function init() {
     renderEncodingSheet();
     setTimeout(() => openOverlay('ov-encoding'), 30);
   });
-  $('#menu-library').addEventListener('click', () => {
+  $('#menu-start').addEventListener('click', () => {
     closeOverlay();
-    setTimeout(goLibrary, 30);
+    jumpTo(0);
+    setBarsVisible(false);
+  });
+  $('#menu-end').addEventListener('click', () => {
+    closeOverlay();
+    jumpTo(state.index.length - 1);
+    setBarsVisible(false);
+  });
+  $('#menu-delete').addEventListener('click', () => {
+    const book = state.book;
+    closeOverlay();
+    setTimeout(() => confirmDelete(book), 30);
   });
 
   // 뷰어 하단 바

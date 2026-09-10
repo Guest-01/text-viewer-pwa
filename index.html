@@ -62,7 +62,7 @@
             <button class="btn-secondary" data-demo="./demo/sample-utf8.txt">데모 열기 (UTF-8)</button>
             <button class="btn-secondary" data-demo="./demo/sample-euckr.txt">데모 열기 (EUC-KR)</button>
           </div>
-          <p class="hint small">목록의 항목을 길게 누르면 삭제할 수 있습니다.</p>
+          <p class="hint small">항목 오른쪽의 ⋮ 버튼이나 길게 누르기로 삭제할 수 있습니다.</p>
         </div>
       </main>
       <button id="btn-open" class="fab"><svg><use href="#i-add"/></svg>파일 열기</button>
@@ -199,7 +199,9 @@
           <div><span class="muted">크기</span> <span id="info-size"></span></div>
         </div>
         <button class="menu-item" id="menu-encoding">인코딩 변경</button>
-        <button class="menu-item" id="menu-library">서재로 가기</button>
+        <button class="menu-item" id="menu-start">맨 처음으로</button>
+        <button class="menu-item" id="menu-end">맨 끝으로</button>
+        <button class="menu-item danger" id="menu-delete">이 파일 삭제</button>
       </div>
     </div>
 
@@ -209,6 +211,17 @@
         <div class="sheet-handle"></div>
         <h2 class="sheet-title">인코딩</h2>
         <ul class="row-list" id="encoding-list"></ul>
+      </div>
+    </div>
+
+    <!-- 서재 항목 메뉴 -->
+    <div class="overlay" id="ov-item" hidden>
+      <div class="sheet menu">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title" id="item-title"></h2>
+        <p class="hint" id="item-meta"></p>
+        <button class="menu-item" id="item-restart">처음부터 읽기</button>
+        <button class="menu-item danger" id="item-delete">삭제</button>
       </div>
     </div>
 

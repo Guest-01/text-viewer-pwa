@@ -97,6 +97,7 @@ h1, h2 { margin: 0; font-weight: 600; }
 .book-icon { color: var(--accent); flex: none; }
 .book-icon svg { width: 32px; height: 32px; }
 .book-main { flex: 1; min-width: 0; }
+.book-more { color: var(--muted); margin-right: -8px; }
 .book-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .book-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
 .book-progress { height: 3px; background: var(--surface-2); border-radius: 2px; margin-top: 8px; overflow: hidden; }
