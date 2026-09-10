@@ -1,5 +1,8 @@
-// 의존성 없는 정적 개발 서버. LAN의 모든 인터페이스(0.0.0.0)에 바인딩한다.
-// 사용: node server.js  (PORT 환경변수로 포트 변경 가능, 기본 8080)
+// 의존성 없는 정적 개발 서버. 기본은 localhost(127.0.0.1)에만 바인딩한다.
+// 사용: node server.js          로컬 전용 (기본)
+//       node server.js --lan    LAN의 모든 인터페이스(0.0.0.0)에 공개
+//       HOST=0.0.0.0 node server.js   환경변수로도 공개 가능
+//       PORT 환경변수로 포트 변경 가능 (기본 8080)
 'use strict';
 const http = require('http');
 const fs = require('fs');
@@ -8,6 +11,9 @@ const os = require('os');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 8080;
+const LAN = process.argv.includes('--lan') || process.env.LAN === '1';
+const HOST = process.env.HOST || (LAN ? '0.0.0.0' : '127.0.0.1');
+const EXPOSED = HOST === '0.0.0.0' || HOST === '::';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -65,17 +71,21 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n텍스트 뷰어 개발 서버 실행 중 (포트 ${PORT})\n`);
+server.listen(PORT, HOST, () => {
+  console.log(`\n텍스트 뷰어 개발 서버 실행 중 (${HOST}:${PORT})\n`);
   console.log(`  로컬:   http://localhost:${PORT}/`);
-  const ifaces = os.networkInterfaces();
-  for (const [name, addrs] of Object.entries(ifaces)) {
-    for (const a of addrs || []) {
-      if (a.family === 'IPv4' && !a.internal) {
-        console.log(`  LAN:    http://${a.address}:${PORT}/   (${name})`);
+  if (EXPOSED) {
+    const ifaces = os.networkInterfaces();
+    for (const [name, addrs] of Object.entries(ifaces)) {
+      for (const a of addrs || []) {
+        if (a.family === 'IPv4' && !a.internal) {
+          console.log(`  LAN:    http://${a.address}:${PORT}/   (${name})`);
+        }
       }
     }
+    console.log('\n같은 와이파이의 모바일 기기에서 LAN 주소로 접속하세요.');
+    console.log('참고: HTTP(LAN IP)에서는 Service Worker와 홈 화면 설치가 동작하지 않습니다. README.md 참고.\n');
+  } else {
+    console.log('\n현재 localhost에서만 접근할 수 있습니다. LAN에 공개하려면 `npm run start:lan` 을 사용하세요.\n');
   }
-  console.log('\n같은 와이파이의 모바일 기기에서 LAN 주소로 접속하세요.');
-  console.log('참고: HTTP(LAN IP)에서는 Service Worker와 홈 화면 설치가 동작하지 않습니다. README.md 참고.\n');
 });
