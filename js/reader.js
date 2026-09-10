@@ -232,11 +232,14 @@ export class Reader {
       this.viewport.className = 'viewport mode-page';
       const frame = el('div', 'frame');
       const stage = el('div', 'stage');
+      const track = el('div', 'track'); // 이동(transform) 대상. 2쪽 보기 접힘선도 여기에 그려 함께 움직인다.
       const pages = el('div', 'pages');
-      stage.appendChild(pages);
+      track.appendChild(pages);
+      stage.appendChild(track);
       frame.appendChild(stage);
       this.viewport.appendChild(frame);
       this.stage = stage;
+      this.track = track;
       this.pages = pages;
       this._scroller = null;
       this._measure();
@@ -360,6 +363,15 @@ export class Reader {
     s.columnWidth = `${this.cols > 1 ? this.colW - 1 : this.W}px`;
     s.columnGap = `${GAP}px`;
     this.viewport.dataset.cols = String(this.cols);
+    // 2쪽 보기 접힘선: 화면 간격(stride)마다 가운데에 1px 선을 반복해 그린다.
+    const t = this.track.style;
+    if (this.cols === 2) {
+      const mid = this.W / 2;
+      const stride = this._screenStride();
+      t.backgroundImage = `repeating-linear-gradient(to right, transparent 0, transparent ${mid - 0.5}px, var(--border) ${mid - 0.5}px, var(--border) ${mid + 0.5}px, transparent ${mid + 0.5}px, transparent ${stride}px)`;
+    } else {
+      t.backgroundImage = 'none';
+    }
   }
 
   _colStride() {
@@ -427,6 +439,7 @@ export class Reader {
     N = Math.max(N, Math.round((this.pages.scrollWidth + GAP) / this._colStride()));
     this._N = Math.max(1, N);
     this.screenCount = Math.max(1, Math.ceil(this._N / this.cols));
+    this.track.style.width = `${this.screenCount * this._screenStride() - GAP}px`;
   }
 
   /** 컬럼 c0를 포함하거나 그 뒤에서 시작하는 첫 청크 */
@@ -471,15 +484,15 @@ export class Reader {
 
   // ---------- 페이지 모드: 이동 ----------
   _setX(x) {
-    this.pages.style.transition = 'none';
-    this.pages.style.transform = `translateX(${x}px)`;
+    this.track.style.transition = 'none';
+    this.track.style.transform = `translateX(${x}px)`;
     this._x = x;
   }
 
   /** 애니메이션 중이면 실제 그려진 위치를 읽는다. */
   _currentX() {
     if (!this._anim) return this._x;
-    const m = getComputedStyle(this.pages).transform;
+    const m = getComputedStyle(this.track).transform;
     const mm = m && m.match(/matrix\((.+)\)/);
     if (mm) {
       const v = mm[1].split(',').map(Number);
@@ -490,7 +503,7 @@ export class Reader {
 
   _cancelAnim() {
     if (!this._anim) return;
-    this.pages.removeEventListener('transitionend', this._anim.onEnd);
+    this.track.removeEventListener('transitionend', this._anim.onEnd);
     clearTimeout(this._anim.timer);
     this._anim = null;
   }
@@ -503,21 +516,21 @@ export class Reader {
       done();
       return;
     }
-    const pages = this.pages;
+    const track = this.track;
     this._setX(from);
-    void pages.offsetWidth; // 시작 위치를 확정한 뒤 전환 시작
-    pages.style.transition = `transform ${ms}ms ${TURN_EASE}`;
-    pages.style.transform = `translateX(${x}px)`;
+    void track.offsetWidth; // 시작 위치를 확정한 뒤 전환 시작
+    track.style.transition = `transform ${ms}ms ${TURN_EASE}`;
+    track.style.transform = `translateX(${x}px)`;
     this._x = x;
     const finish = () => {
       this._cancelAnim();
-      pages.style.transition = 'none';
+      track.style.transition = 'none';
       done();
     };
     const onEnd = (e) => {
-      if (e.target === pages && e.propertyName === 'transform') finish();
+      if (e.target === track && e.propertyName === 'transform') finish();
     };
-    pages.addEventListener('transitionend', onEnd);
+    track.addEventListener('transitionend', onEnd);
     this._anim = { onEnd, timer: setTimeout(finish, ms + 100) };
   }
 
@@ -747,7 +760,14 @@ export class Reader {
 
     v.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      if (this._drag) return; // 두 번째 손가락은 무시
+      const old = this._drag;
+      if (old) {
+        // 같은 포인터가 아직 눌려 있으면 두 번째 손가락으로 보고 무시한다.
+        // 다른 포인터면 up/cancel을 놓친 낡은 상태이므로 정리하고 새로 시작한다.
+        if (old.id !== e.pointerId && old.moved) this._endDrag(old, e, true);
+        else if (old.id !== e.pointerId) this._drag = null;
+        else return;
+      }
       this._drag = {
         id: e.pointerId,
         sx: e.clientX,
@@ -762,7 +782,9 @@ export class Reader {
       };
     });
 
-    v.addEventListener('pointermove', (e) => {
+    // move/up/cancel은 window에서 받는다. 뷰포트 밖에서 손을 떼거나 대상 요소가
+    // 교체된 경우에도 드래그 상태가 남지 않게 하기 위해서다.
+    window.addEventListener('pointermove', (e) => {
       const d = this._drag;
       if (!d || e.pointerId !== d.id || d.vertical || this.mode !== 'page' || !this.index) return;
       const dx = e.clientX - d.sx;
@@ -772,7 +794,7 @@ export class Reader {
           d.moved = true;
           d.baseX = this._currentX();
           this._cancelAnim();
-          this.pages.style.transition = 'none';
+          this.track.style.transition = 'none';
           try {
             v.setPointerCapture(e.pointerId);
           } catch {
@@ -800,19 +822,19 @@ export class Reader {
         this._endDrag(d, e, false);
         return;
       }
-      if (d.vertical) return;
+      if (d.vertical || !this.index) return;
       const dx = e.clientX - d.sx;
       const dy = e.clientY - d.sy;
       const dt = e.timeStamp - d.st;
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 500) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 500 && v.contains(e.target)) {
         const ratio = e.clientX / v.clientWidth;
         if (ratio < 0.3) this.prev();
         else if (ratio > 0.7) this.next();
         else this.onTap();
       }
     };
-    v.addEventListener('pointerup', release);
-    v.addEventListener('pointercancel', (e) => {
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', (e) => {
       const d = this._drag;
       if (!d || e.pointerId !== d.id) return;
       this._drag = null;

@@ -142,19 +142,14 @@ h1, h2 { margin: 0; font-weight: 600; }
   overflow: hidden;
 }
 .stage { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.track { position: absolute; left: 0; top: 0; height: 100%; min-width: 100%; will-change: transform; }
 .pages {
   column-fill: auto;
-  will-change: transform;
 }
 /* 청크는 항상 컬럼 맨 위에서 시작한다. 앞뒤 청크를 붙이거나 떼어도 다른 청크의 배치가 바뀌지 않는다. */
 .pages > .chunk { break-before: column; }
 /* 2쪽 보기에서 좌우 짝을 유지하기 위한 빈 컬럼 */
 .pages > .spacer { break-after: column; height: 1px; }
-/* 2쪽 보기 가운데 접힘선 */
-.viewport[data-cols="2"] .stage::after {
-  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; margin-left: -0.5px;
-  background: var(--border); pointer-events: none;
-}
 
 /* 스크롤 모드 */
 .scroller {
