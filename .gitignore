@@ -1,3 +1,8 @@
 node_modules/
 .playwright-mcp/
 shots/
+
+# playwright-cli (개인 개발 도구 설정/출력물)
+.playwright/
+.playwright-cli/
+.claude/skills/playwright-cli/
