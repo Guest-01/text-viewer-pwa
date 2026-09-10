@@ -248,6 +248,10 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
 .segmented button { padding: 7px 14px; border-radius: 6px; font-size: 14px; }
 .segmented button.active { background: var(--surface); color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 .segmented button.serif { font-family: var(--font-serif); }
+/* 현재 읽기 방식에서 의미 없는 설정은 흐리게 하고 입력을 막는다 */
+.setting-row.disabled { opacity: 0.4; pointer-events: none; }
+.sheet-foot { display: flex; justify-content: flex-end; padding: 6px 0 0; }
+.btn-link { color: var(--accent); font-size: 14px; padding: 6px 4px; }
 .menu-item { display: block; width: 100%; text-align: left; padding: 14px 4px; font-size: 16px; border-top: 1px solid var(--border); }
 .menu-item.danger { color: var(--danger); }
 .info-box { padding: 4px 4px 12px; font-size: 14px; line-height: 1.7; }

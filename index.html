@@ -86,7 +86,7 @@
         </div>
         <div class="actions-row">
           <button class="action-btn" id="btn-bookmarks"><svg><use href="#i-list"/></svg><span>책갈피</span></button>
-          <button class="action-btn" id="btn-mode"><svg><use href="#i-swap"/></svg><span>스크롤</span></button>
+          <button class="action-btn" id="btn-mode"><svg><use href="#i-swap"/></svg><span>스크롤로 보기</span></button>
           <button class="action-btn" id="btn-settings"><svg><use href="#i-tune"/></svg><span>설정</span></button>
         </div>
       </footer>
@@ -97,23 +97,23 @@
       <div class="sheet">
         <div class="sheet-handle"></div>
         <div class="setting-row">
-          <span class="setting-label">글자 크기</span>
-          <div class="stepper"><button id="font-size-dec">−</button><span id="val-font-size">18</span><button id="font-size-inc">+</button></div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">줄간격</span>
-          <div class="stepper"><button id="line-height-dec">−</button><span id="val-line-height">1.7</span><button id="line-height-inc">+</button></div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">여백</span>
-          <div class="stepper"><button id="margin-dec">−</button><span id="val-margin">16</span><button id="margin-inc">+</button></div>
-        </div>
-        <div class="setting-row">
           <span class="setting-label">글꼴</span>
           <div class="segmented">
             <button data-set="font" data-value="sans">고딕</button>
             <button data-set="font" data-value="serif" class="serif">명조</button>
           </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">글자 크기</span>
+          <div class="stepper"><button id="font-size-dec" aria-label="글자 크기 줄이기">−</button><span id="val-font-size">18</span><button id="font-size-inc" aria-label="글자 크기 키우기">+</button></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">줄간격</span>
+          <div class="stepper"><button id="line-height-dec" aria-label="줄간격 줄이기">−</button><span id="val-line-height">1.7</span><button id="line-height-inc" aria-label="줄간격 늘리기">+</button></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">여백</span>
+          <div class="stepper"><button id="margin-dec" aria-label="여백 줄이기">−</button><span id="val-margin">4</span><button id="margin-inc" aria-label="여백 늘리기">+</button></div>
         </div>
         <div class="setting-row">
           <span class="setting-label">테마</span>
@@ -125,19 +125,22 @@
           </div>
         </div>
         <div class="setting-row">
-          <span class="setting-label">보기</span>
+          <span class="setting-label">읽기 방식</span>
           <div class="segmented">
             <button data-set="mode" data-value="page">페이지</button>
             <button data-set="mode" data-value="scroll">스크롤</button>
           </div>
         </div>
-        <div class="setting-row">
+        <div class="setting-row" id="row-spread">
           <span class="setting-label">2쪽 보기</span>
           <div class="segmented">
             <button data-set="spread" data-value="auto">자동</button>
             <button data-set="spread" data-value="1">1쪽</button>
             <button data-set="spread" data-value="2">2쪽</button>
           </div>
+        </div>
+        <div class="sheet-foot">
+          <button class="btn-link" id="btn-reset-settings">기본값으로</button>
         </div>
       </div>
     </div>

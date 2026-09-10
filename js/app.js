@@ -9,6 +9,7 @@ const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
 const DEFAULT_SETTINGS = { fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', theme: 'system', mode: 'page', spread: 'auto' };
 const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
+const MARGIN_STEP = 4; // 여백 1단계 = 4px
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const MAX_SEARCH_RESULTS = 300;
 
@@ -54,7 +55,7 @@ function applyReaderStyle() {
   v.style.setProperty('--line-height', String(s.lineHeight));
   v.style.setProperty('--margin', `${s.margin}px`);
   v.dataset.font = s.font;
-  $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤' : '페이지';
+  $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤로 보기' : '페이지로 보기';
 }
 
 // ---------- 라우팅 ----------
@@ -346,44 +347,62 @@ function runSearch() {
 }
 
 // ---------- 설정 시트 ----------
+// 설정 변경 진입점. 하단 바의 읽기 방식 버튼도 이 함수를 쓴다.
+function updateSetting(key, value) {
+  const s = state.settings;
+  s[key] = value;
+  saveSettings();
+  refreshSettingsSheet();
+  if (key === 'theme') applyTheme();
+  else if (key === 'mode') {
+    applyReaderStyle();
+    if (state.reader) state.reader.setMode(value);
+  } else if (key === 'spread') {
+    if (state.reader) state.reader.setSpread(value);
+  } else {
+    applyReaderStyle();
+    if (state.reader) state.reader.relayout();
+  }
+}
+function refreshSettingsSheet() {
+  const s = state.settings;
+  $('#val-font-size').textContent = s.fontSize;
+  $('#val-line-height').textContent = s.lineHeight.toFixed(1);
+  $('#val-margin').textContent = Math.round(s.margin / MARGIN_STEP); // px 대신 0~12 단계로 표시
+  document.querySelectorAll('[data-set]').forEach((btn) => {
+    btn.classList.toggle('active', String(s[btn.dataset.set]) === btn.dataset.value);
+  });
+  // 2쪽 보기는 페이지 모드에서만 의미가 있다
+  $('#row-spread').classList.toggle('disabled', s.mode !== 'page');
+}
 function bindSettings() {
   const s = state.settings;
-  const refresh = () => {
-    $('#val-font-size').textContent = s.fontSize;
-    $('#val-line-height').textContent = s.lineHeight.toFixed(1);
-    $('#val-margin').textContent = s.margin;
-    document.querySelectorAll('[data-set]').forEach((btn) => {
-      btn.classList.toggle('active', String(s[btn.dataset.set]) === btn.dataset.value);
-    });
-  };
-  const update = (key, value) => {
-    s[key] = value;
-    saveSettings();
-    refresh();
-    if (key === 'theme') applyTheme();
-    else if (key === 'mode') {
-      applyReaderStyle();
-      if (state.reader) state.reader.setMode(value);
-    } else if (key === 'spread') {
-      if (state.reader) state.reader.setSpread(value);
-    } else {
-      applyReaderStyle();
-      if (state.reader) state.reader.relayout();
-    }
-  };
   const stepper = (key, delta, min, max, round = (v) => v) => {
-    update(key, round(Math.min(max, Math.max(min, s[key] + delta))));
+    updateSetting(key, round(Math.min(max, Math.max(min, s[key] + delta))));
   };
   $('#font-size-dec').addEventListener('click', () => stepper('fontSize', -1, 12, 32));
   $('#font-size-inc').addEventListener('click', () => stepper('fontSize', 1, 12, 32));
   $('#line-height-dec').addEventListener('click', () => stepper('lineHeight', -0.1, 1.2, 2.4, (v) => Math.round(v * 10) / 10));
   $('#line-height-inc').addEventListener('click', () => stepper('lineHeight', 0.1, 1.2, 2.4, (v) => Math.round(v * 10) / 10));
-  $('#margin-dec').addEventListener('click', () => stepper('margin', -4, 0, 48));
-  $('#margin-inc').addEventListener('click', () => stepper('margin', 4, 0, 48));
+  $('#margin-dec').addEventListener('click', () => stepper('margin', -MARGIN_STEP, 0, MARGIN_STEP * 12));
+  $('#margin-inc').addEventListener('click', () => stepper('margin', MARGIN_STEP, 0, MARGIN_STEP * 12));
   document.querySelectorAll('[data-set]').forEach((btn) => {
-    btn.addEventListener('click', () => update(btn.dataset.set, btn.dataset.value));
+    btn.addEventListener('click', () => updateSetting(btn.dataset.set, btn.dataset.value));
   });
-  refresh();
+  $('#btn-reset-settings').addEventListener('click', () => {
+    Object.assign(s, DEFAULT_SETTINGS);
+    saveSettings();
+    refreshSettingsSheet();
+    applyTheme();
+    applyReaderStyle();
+    if (state.reader) {
+      state.reader.setSpread(s.spread);
+      state.reader.setMode(s.mode);
+      state.reader.relayout();
+    }
+    toast('설정을 기본값으로 되돌렸습니다');
+  });
+  refreshSettingsSheet();
 }
 
 // ---------- 인코딩 ----------
@@ -487,11 +506,7 @@ async function init() {
   });
   $('#btn-mode').addEventListener('click', () => {
     const mode = state.settings.mode === 'page' ? 'scroll' : 'page';
-    state.settings.mode = mode;
-    saveSettings();
-    applyReaderStyle();
-    document.querySelectorAll('[data-set="mode"]').forEach((b) => b.classList.toggle('active', b.dataset.value === mode));
-    if (state.reader) state.reader.setMode(mode);
+    updateSetting('mode', mode);
     toast(mode === 'page' ? '페이지 모드' : '스크롤 모드', 900);
   });
   $('#btn-settings').addEventListener('click', () => openOverlay('ov-settings'));
