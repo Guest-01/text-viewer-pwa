@@ -1,3 +1,12 @@
+/* 본문 명조체: Noto Serif KR 서브셋 (SIL OFL 1.1, fonts/LICENSE-OFL.txt). 범위 밖 글자는 뒤 폰트로 대체된다. */
+@font-face {
+  font-family: "TV Serif";
+  src: url("../fonts/noto-serif-kr-2350-v1.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #ffffff;
   --fg: #1f2328;
@@ -12,7 +21,7 @@
   --danger: #dc2626;
   --mark: #fde68a;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-  --font-serif: "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", "Apple Myungjo", Batang, serif;
+  --font-serif: "TV Serif", "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", "Apple Myungjo", Batang, serif;
 }
 body[data-theme="dark"] {
   --bg: #121212;

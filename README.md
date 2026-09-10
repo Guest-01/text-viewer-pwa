@@ -8,6 +8,7 @@
 - 뷰어: 페이지 모드(탭, 손가락을 따라오는 드래그/플릭 넘김)와 스크롤 모드, 진행률 슬라이더
 - 2쪽 보기: 자동(너비 600px 이상: 폴더블 펼침, 태블릿, 가로 모드) / 1쪽 / 2쪽
 - 설정: 글자 크기, 줄간격, 여백, 글꼴(고딕/명조), 테마(밝게/어둡게/세피아)
+  - 고딕은 기기 시스템 폰트, 명조는 동봉한 Noto Serif KR 서브셋(완성형 2,350자)을 오프라인에서도 사용
 - 책갈피, 본문 검색(결과 강조)
 - 인코딩 자동 감지(UTF-8, EUC-KR, UTF-16) 및 수동 변경
 - PWA: 홈 화면 설치, 오프라인 동작, 파일 관리자 "공유"로 txt 받기(Web Share Target)
@@ -50,6 +51,7 @@ npm run start:lan
 | `npm run start:lan` | 개발 서버를 LAN에 공개 (0.0.0.0:8080) |
 | `npm run icons` | `icons/` PNG 아이콘 재생성 |
 | `npm run demo` | `demo/` 데모 텍스트 재생성 (UTF-8, EUC-KR) |
+| `npm run font` | `fonts/` 명조 서브셋 woff2 재생성 (아래 참고) |
 
 ## 구조
 
@@ -62,12 +64,27 @@ js/text.js            본문 블록/청크 색인
 js/encoding.js        인코딩 감지, 디코딩
 js/db.js              IndexedDB (books 메타, contents 원본 버퍼)
 js/ui.js              오버레이 스택(뒤로가기 연동), 토스트, 유틸
-sw.js                 Service Worker (앱 셸 캐시, share_target)
+fonts/                본문 명조체 (Noto Serif KR 서브셋 woff2, OFL 라이선스)
+sw.js                 Service Worker (앱 셸 캐시, 폰트 캐시 우선, share_target)
 manifest.webmanifest  PWA 매니페스트
 server.js             개발 서버
 scripts/              아이콘/데모 생성 스크립트
 demo/                 데모 텍스트
 ```
+
+## 폰트와 아이콘
+
+- 본문 명조체는 [Noto Serif KR](https://github.com/notofonts/noto-cjk) Regular에서 KS X 1001 완성형 한글 2,350자와 라틴·구두점·CJK 기호만 남긴 서브셋입니다(약 400KB). 범위 밖 글자(한자, 옛한글, 희귀 음절)는 시스템 폰트로 표시됩니다. Service Worker가 설치 시 미리 받아 캐시 우선으로 제공하므로 오프라인에서도 동작합니다. 라이선스는 SIL OFL 1.1이며 `fonts/LICENSE-OFL.txt`에 있습니다.
+- 재생성하려면 Python 3과 fonttools가 필요합니다. 시스템에 설치하지 않으려면 가상환경을 쓰세요.
+
+  ```bash
+  python -m venv .fontenv
+  .fontenv/Scripts/pip install fonttools brotli
+  .fontenv/Scripts/python scripts/make-font.py
+  ```
+
+  원본 OTF는 스크립트가 임시 폴더로 내려받습니다. 범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요.
+- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 13개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
 
 ## 저장 구조
 

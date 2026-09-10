@@ -6,3 +6,5 @@ shots/
 .playwright/
 .playwright-cli/
 .claude/skills/playwright-cli/
+.fontenv/
+__pycache__/

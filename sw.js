@@ -1,5 +1,5 @@
-// Service Worker: 앱 셸 캐시(네트워크 우선, 오프라인 시 캐시) + Web Share Target 처리
-const VERSION = 'v1';
+// Service Worker: 앱 셸 캐시(네트워크 우선, 오프라인 시 캐시) + 정적 자산(폰트) 캐시 우선 + Web Share Target 처리
+const VERSION = 'v2';
 const CACHE = `tv-${VERSION}`;
 const SHARED_CACHE = 'tv-shared';
 const ASSETS = [
@@ -16,7 +16,10 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png',
+  './fonts/noto-serif-kr-2350-v1.woff2',
 ];
+// 파일명에 버전이 붙어 내용이 바뀌지 않는 자산: 캐시에 있으면 네트워크에 묻지 않는다.
+const IMMUTABLE = /\/fonts\//;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -46,11 +49,24 @@ self.addEventListener('fetch', (event) => {
   }
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
+  if (IMMUTABLE.test(url.pathname)) {
+    event.respondWith(cacheFirst(req));
+    return;
+  }
   // 내비게이션은 앱 셸(index.html)로 응답
   const isNav = req.mode === 'navigate';
   const key = isNav ? new Request(new URL('./index.html', self.location.href).href) : req;
   event.respondWith(networkFirst(key));
 });
+
+async function cacheFirst(req) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(req, { ignoreSearch: true });
+  if (cached) return cached;
+  const res = await fetch(req);
+  if (res && res.ok) cache.put(req, res.clone());
+  return res;
+}
 
 async function networkFirst(req) {
   const cache = await caches.open(CACHE);

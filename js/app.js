@@ -514,6 +514,13 @@ async function init() {
     $('#btn-install').hidden = true;
   });
 
+  // 웹폰트(명조)가 늦게 도착하면 글자 폭이 바뀌므로 페이지를 다시 배치한다.
+  if (document.fonts && document.fonts.addEventListener) {
+    document.fonts.addEventListener('loadingdone', () => {
+      if (state.reader) state.reader.relayout();
+    });
+  }
+
   // Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('SW 등록 실패', err));
