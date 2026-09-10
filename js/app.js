@@ -9,7 +9,7 @@ const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
 const DEFAULT_SETTINGS = {
   fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', bold: false, justify: false,
-  theme: 'system', mode: 'page', spread: 'auto', keepAwake: false, leftNext: false,
+  theme: 'system', mode: 'page', spread: 'auto', keepAwake: false, leftNext: false, statusBar: true,
 };
 const GUIDE_KEY = 'tv.guideShown';
 const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
@@ -63,6 +63,8 @@ function applyReaderStyle() {
   v.dataset.font = s.font;
   v.dataset.bold = s.bold ? '1' : '';
   v.dataset.justify = s.justify ? '1' : '';
+  v.dataset.status = s.statusBar ? '1' : '';
+  $('#status-bar').hidden = !s.statusBar;
   if (state.reader) state.reader.leftNext = s.leftNext;
   $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤로 보기' : '페이지로 보기';
 }
@@ -298,6 +300,8 @@ function handlePosition(offset) {
   const pct = (progress * 100).toFixed(1);
   $('#progress').value = Math.round(progress * 10000);
   $('#progress-label').textContent = `${pct}%`;
+  const info = state.settings.statusBar ? state.reader.getPageInfo() : null;
+  $('#status-bar').textContent = info ? `${info.page} / ${info.total} · ${pct}%` : `${pct}%`;
   updateBookmarkIcon();
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(flushSave, 400);

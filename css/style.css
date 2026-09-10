@@ -303,6 +303,20 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
 .row-sub mark { background: var(--mark); color: inherit; border-radius: 2px; }
 .row-del { color: var(--muted); margin-right: 4px; }
 
+/* 상태 표시줄 */
+.status-bar {
+  position: absolute; left: 50%; bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  font-size: 11px; line-height: 1; color: var(--muted);
+  padding: 4px 10px; border-radius: 10px; background: var(--bar-bg);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  pointer-events: none; z-index: 4; transition: opacity 0.15s ease;
+}
+.status-bar[hidden] { display: none; }
+.reader.bars-visible .status-bar { opacity: 0; }
+/* 표시줄이 켜져 있으면 본문 아래에 자리를 비운다 */
+.viewport[data-status="1"] .frame { padding-bottom: calc(var(--margin) + 26px + env(safe-area-inset-bottom, 0px)); }
+
 /* 탭 영역 안내 */
 .guide {
   position: absolute; inset: 0; z-index: 18;

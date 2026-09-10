@@ -72,6 +72,8 @@
     <!-- 뷰어 -->
     <section id="reader" class="screen reader" hidden>
       <div id="viewport" class="viewport mode-page"></div>
+      <!-- 상태 표시줄: 페이지 모드 "128 / 940 · 13.6%", 스크롤 모드 "13.6%" -->
+      <div class="status-bar" id="status-bar" hidden></div>
       <header class="bar top-bar">
         <button class="icon-btn" id="btn-back" aria-label="서재로"><svg><use href="#i-back"/></svg></button>
         <div class="title" id="reader-title"></div>
@@ -160,6 +162,10 @@
             <button data-set="spread" data-value="1">1쪽</button>
             <button data-set="spread" data-value="2">2쪽</button>
           </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">쪽수 표시<small>화면 아래에 쪽수와 진행률</small></span>
+          <button class="switch" role="switch" aria-checked="false" data-toggle="statusBar" aria-label="쪽수 표시"></button>
         </div>
         <div class="setting-row" id="row-left-next">
           <span class="setting-label">한 손 읽기<small>왼쪽을 눌러도 다음 페이지</small></span>

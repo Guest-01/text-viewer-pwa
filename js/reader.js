@@ -52,6 +52,7 @@ export class Reader {
     this.screenCount = 1;
     this._chunkEls = new Map(); // 청크 번호 → 래퍼 요소
     this._colRange = new Map(); // 청크 번호 → [첫 컬럼, 마지막 컬럼]
+    this._colsSeen = new Map(); // 이번 배치에서 측정된 청크 → 컬럼 수 (쪽수 추정용)
     this._spacer = 0; // 앞쪽 빈 컬럼 수 (2쪽 보기 좌우 짝 유지용)
     this._x = 0; // pages의 현재 translateX
     this._anim = null;
@@ -107,6 +108,41 @@ export class Reader {
       if (p != null) this.position = p;
     }
     return this.position;
+  }
+
+  /**
+   * 페이지 모드의 쪽수 { page, total }. 전체를 배치하지 않으므로 추정치다.
+   * 렌더된 범위는 실제 컬럼 수를 쓰고, 그 앞뒤는 지금까지 측정된 청크들의 "컬럼당 글자 수" 평균으로 환산한다.
+   */
+  getPageInfo() {
+    if (!this.index || this.mode !== 'page' || !this._win || !this._colsSeen.size) return null;
+    let chars = 0;
+    let cols = 0;
+    for (const [c, n] of this._colsSeen) {
+      chars += this._chunkCharEnd(c) - this._chunkCharStart(c);
+      cols += n;
+    }
+    const perCol = Math.max(1, chars / Math.max(1, cols));
+    const [w0, w1] = this._win;
+    const before = Math.round(this._chunkCharStart(w0) / perCol);
+    const after = Math.round((this.index.length - this._chunkCharEnd(w1)) / perCol);
+    let winCols = 0;
+    for (let c = w0; c <= w1; c++) {
+      const r = this._colRange.get(c);
+      if (r) winCols += r[1] - r[0] + 1;
+    }
+    const cur = before + this.screen * this.cols - this._spacer; // 현재 화면 첫 컬럼의 전체 기준 번호
+    const total = Math.max(1, Math.ceil((before + winCols + after) / this.cols));
+    const page = Math.min(total, Math.floor(Math.max(0, cur) / this.cols) + 1);
+    return { page, total };
+  }
+
+  _chunkCharStart(c) {
+    return this.index.starts[this.index.chunkStarts[c]];
+  }
+
+  _chunkCharEnd(c) {
+    return c + 1 < this.index.chunkCount ? this.index.starts[this.index.chunkStarts[c + 1]] : this.index.length;
   }
 
   /** 지금 화면에 보이는 글자 범위 [start, end). end는 화면 아래로 벗어난 첫 글자. */
@@ -385,6 +421,7 @@ export class Reader {
     this.W = this.stage.clientWidth;
     this.H = this.stage.clientHeight;
     this.cols = this._resolveCols();
+    this._colsSeen = new Map(); // 배치 조건이 바뀌면 쪽수 추정도 처음부터
     this.colW = (this.W - (this.cols - 1) * GAP) / this.cols;
     const s = this.pages.style;
     s.width = `${this.W}px`;
@@ -464,6 +501,7 @@ export class Reader {
         if (rs.length) end = Math.max(end, col(rs[rs.length - 1].left));
       }
       this._colRange.set(c, [start, end]);
+      this._colsSeen.set(c, end - start + 1);
       N = Math.max(N, end + 1);
     }
     N = Math.max(N, Math.round((this.pages.scrollWidth + GAP) / this._colStride()));
@@ -610,6 +648,7 @@ export class Reader {
     this._measureChunks();
     this.screen = this._screenOfOffset(this.position);
     this._setX(-this.screen * this._screenStride());
+    this.onPosition(this.position); // 청크가 늘어 쪽수 추정이 바뀌었을 수 있다
   }
 
   _appendChunk() {
