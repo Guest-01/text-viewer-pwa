@@ -131,6 +131,8 @@ h1, h2 { margin: 0; font-weight: 600; }
   -webkit-touch-callout: none;
 }
 .viewport[data-font="serif"] { font-family: var(--font-serif); }
+.viewport[data-bold="1"] { font-weight: 700; }
+.viewport[data-justify="1"] p { text-align: justify; }
 .viewport.mode-page { touch-action: none; }
 .viewport.mode-scroll { touch-action: pan-y; }
 
@@ -250,6 +252,17 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
 .segmented button.serif { font-family: var(--font-serif); }
 /* 현재 읽기 방식에서 의미 없는 설정은 흐리게 하고 입력을 막는다 */
 .setting-row.disabled { opacity: 0.4; pointer-events: none; }
+/* on/off 스위치 */
+.switch {
+  position: relative; width: 46px; height: 28px; border-radius: 14px; flex: none;
+  background: var(--border); transition: background 0.15s ease;
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.15s ease;
+}
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--accent-fg); }
 .sheet-foot { display: flex; justify-content: flex-end; padding: 6px 0 0; }
 .btn-link { color: var(--accent); font-size: 14px; padding: 6px 4px; }
 .menu-item { display: block; width: 100%; text-align: left; padding: 14px 4px; font-size: 16px; border-top: 1px solid var(--border); }

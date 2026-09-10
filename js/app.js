@@ -7,7 +7,10 @@ import { toast, openOverlay, closeOverlay, onLongPress, formatBytes, formatDate,
 
 const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
-const DEFAULT_SETTINGS = { fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', theme: 'system', mode: 'page', spread: 'auto' };
+const DEFAULT_SETTINGS = {
+  fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', bold: false, justify: false,
+  theme: 'system', mode: 'page', spread: 'auto', keepAwake: false,
+};
 const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
 const MARGIN_STEP = 4; // 여백 1단계 = 4px
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
@@ -24,6 +27,7 @@ const state = {
   enteredFromLibrary: false,
   lowerText: null,
   installPrompt: null,
+  wakeLock: null,
 };
 
 // ---------- 설정 ----------
@@ -55,7 +59,29 @@ function applyReaderStyle() {
   v.style.setProperty('--line-height', String(s.lineHeight));
   v.style.setProperty('--margin', `${s.margin}px`);
   v.dataset.font = s.font;
+  v.dataset.bold = s.bold ? '1' : '';
+  v.dataset.justify = s.justify ? '1' : '';
   $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤로 보기' : '페이지로 보기';
+}
+
+// 화면 꺼짐 방지: 뷰어가 보이고 설정이 켜져 있을 때만 잠금을 잡는다.
+// 탭 전환·화면 끄기 등으로 잠금이 풀리면 브라우저가 알아서 놓으므로 돌아올 때 다시 잡는다.
+async function syncWakeLock() {
+  const want = state.settings.keepAwake && state.book && document.visibilityState === 'visible';
+  if (want && !state.wakeLock) {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      const lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { if (state.wakeLock === lock) state.wakeLock = null; });
+      state.wakeLock = lock;
+    } catch (err) {
+      console.warn('wake lock 실패', err);
+    }
+  } else if (!want && state.wakeLock) {
+    const lock = state.wakeLock;
+    state.wakeLock = null;
+    lock.release().catch(() => {});
+  }
 }
 
 // ---------- 라우팅 ----------
@@ -188,6 +214,7 @@ async function openReader(id) {
   book.lastOpenedAt = Date.now();
   db.putBook(book);
   localStorage.setItem(LAST_BOOK_KEY, id);
+  syncWakeLock();
 }
 
 function decodeAndLoad(position) {
@@ -217,6 +244,7 @@ function closeReaderScreen() {
   state.buffer = null;
   state.index = null;
   state.lowerText = null;
+  syncWakeLock();
 }
 
 function handlePosition(offset) {
@@ -354,6 +382,7 @@ function updateSetting(key, value) {
   saveSettings();
   refreshSettingsSheet();
   if (key === 'theme') applyTheme();
+  else if (key === 'keepAwake') syncWakeLock();
   else if (key === 'mode') {
     applyReaderStyle();
     if (state.reader) state.reader.setMode(value);
@@ -372,6 +401,9 @@ function refreshSettingsSheet() {
   document.querySelectorAll('[data-set]').forEach((btn) => {
     btn.classList.toggle('active', String(s[btn.dataset.set]) === btn.dataset.value);
   });
+  document.querySelectorAll('[data-toggle]').forEach((btn) => {
+    btn.setAttribute('aria-checked', s[btn.dataset.toggle] ? 'true' : 'false');
+  });
   // 2쪽 보기는 페이지 모드에서만 의미가 있다
   $('#row-spread').classList.toggle('disabled', s.mode !== 'page');
 }
@@ -389,12 +421,16 @@ function bindSettings() {
   document.querySelectorAll('[data-set]').forEach((btn) => {
     btn.addEventListener('click', () => updateSetting(btn.dataset.set, btn.dataset.value));
   });
+  document.querySelectorAll('[data-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => updateSetting(btn.dataset.toggle, !s[btn.dataset.toggle]));
+  });
   $('#btn-reset-settings').addEventListener('click', () => {
     Object.assign(s, DEFAULT_SETTINGS);
     saveSettings();
     refreshSettingsSheet();
     applyTheme();
     applyReaderStyle();
+    syncWakeLock();
     if (state.reader) {
       state.reader.setSpread(s.spread);
       state.reader.setMode(s.mode);
@@ -521,6 +557,7 @@ async function init() {
   // 저장 보장
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushSave();
+    else syncWakeLock();
   });
   window.addEventListener('pagehide', flushSave);
 

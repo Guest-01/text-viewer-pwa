@@ -116,6 +116,14 @@
           <div class="stepper"><button id="margin-dec" aria-label="여백 줄이기">−</button><span id="val-margin">4</span><button id="margin-inc" aria-label="여백 늘리기">+</button></div>
         </div>
         <div class="setting-row">
+          <span class="setting-label">굵게</span>
+          <button class="switch" role="switch" aria-checked="false" data-toggle="bold" aria-label="굵게"></button>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">양쪽 정렬</span>
+          <button class="switch" role="switch" aria-checked="false" data-toggle="justify" aria-label="양쪽 정렬"></button>
+        </div>
+        <div class="setting-row">
           <span class="setting-label">테마</span>
           <div class="segmented">
             <button data-set="theme" data-value="system">기기</button>
@@ -138,6 +146,10 @@
             <button data-set="spread" data-value="1">1쪽</button>
             <button data-set="spread" data-value="2">2쪽</button>
           </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">화면 꺼짐 방지</span>
+          <button class="switch" role="switch" aria-checked="false" data-toggle="keepAwake" aria-label="화면 꺼짐 방지"></button>
         </div>
         <div class="sheet-foot">
           <button class="btn-link" id="btn-reset-settings">기본값으로</button>
