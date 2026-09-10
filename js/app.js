@@ -9,8 +9,9 @@ const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
 const DEFAULT_SETTINGS = {
   fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', bold: false, justify: false,
-  theme: 'system', mode: 'page', spread: 'auto', keepAwake: false,
+  theme: 'system', mode: 'page', spread: 'auto', keepAwake: false, leftNext: false,
 };
+const GUIDE_KEY = 'tv.guideShown';
 const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
 const MARGIN_STEP = 4; // 여백 1단계 = 4px
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
@@ -62,6 +63,7 @@ function applyReaderStyle() {
   v.dataset.font = s.font;
   v.dataset.bold = s.bold ? '1' : '';
   v.dataset.justify = s.justify ? '1' : '';
+  if (state.reader) state.reader.leftNext = s.leftNext;
   $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤로 보기' : '페이지로 보기';
 }
 
@@ -257,7 +259,20 @@ function decodeAndLoad(position) {
     });
   }
   state.reader.setSpread(state.settings.spread);
+  state.reader.leftNext = state.settings.leftNext;
   state.reader.load(state.index, position, state.settings.mode);
+  if (!localStorage.getItem(GUIDE_KEY)) showGuide();
+}
+
+// ---------- 탭 영역 안내 ----------
+function showGuide() {
+  const s = state.settings;
+  const page = s.mode === 'page';
+  $('#guide-left-text').textContent = page ? (s.leftNext ? '다음 페이지' : '이전 페이지') : '한 화면 위로';
+  $('#guide-right-text').textContent = page ? '다음 페이지' : '한 화면 아래로';
+  $('#guide-note').textContent = page ? '좌우로 끌어서 넘길 수도 있습니다.' : '스크롤 모드입니다. 위아래로 밀어 읽습니다.';
+  $('#guide').hidden = false;
+  localStorage.setItem(GUIDE_KEY, '1');
 }
 
 function closeReaderScreen() {
@@ -484,8 +499,9 @@ function refreshSettingsSheet() {
   document.querySelectorAll('[data-toggle]').forEach((btn) => {
     btn.setAttribute('aria-checked', s[btn.dataset.toggle] ? 'true' : 'false');
   });
-  // 2쪽 보기는 페이지 모드에서만 의미가 있다
+  // 2쪽 보기·한 손 읽기는 페이지 모드에서만 의미가 있다
   $('#row-spread').classList.toggle('disabled', s.mode !== 'page');
+  $('#row-left-next').classList.toggle('disabled', s.mode !== 'page');
 }
 function bindSettings() {
   const s = state.settings;
@@ -613,6 +629,12 @@ async function init() {
     jumpTo(state.index.length - 1);
     setBarsVisible(false);
   });
+  $('#menu-guide').addEventListener('click', () => {
+    closeOverlay();
+    setBarsVisible(false);
+    setTimeout(showGuide, 30);
+  });
+  $('#guide').addEventListener('click', () => { $('#guide').hidden = true; });
   $('#menu-delete').addEventListener('click', () => {
     const book = state.book;
     closeOverlay();

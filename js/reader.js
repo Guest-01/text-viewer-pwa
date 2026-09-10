@@ -33,6 +33,7 @@ export class Reader {
     this.index = null;
     this.mode = 'page';
     this.spread = 'auto'; // 'auto' | '1' | '2'
+    this.leftNext = false; // 한 손 읽기: 왼쪽 탭도 다음으로
     this.position = 0;
     this._anchor = null; // 마지막 사용자 이동 지점 (재배치 기준)
     this.W = 0;
@@ -857,7 +858,7 @@ export class Reader {
       const dt = e.timeStamp - d.st;
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 500 && v.contains(e.target)) {
         const ratio = e.clientX / v.clientWidth;
-        if (ratio < 0.3) this.prev();
+        if (ratio < 0.3) this.leftNext ? this.next() : this.prev();
         else if (ratio > 0.7) this.next();
         else this.onTap();
       }

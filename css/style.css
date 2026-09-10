@@ -240,6 +240,7 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
 .sheet-title { font-size: 16px; margin: 4px 0 8px; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
 .setting-label { font-size: 15px; }
+.setting-label small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper button {
   width: 40px; height: 36px; border-radius: 8px;
@@ -301,6 +302,26 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
 .row-sub { font-size: 14px; line-height: 1.45; color: var(--fg); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .row-sub mark { background: var(--mark); color: inherit; border-radius: 2px; }
 .row-del { color: var(--muted); margin-right: 4px; }
+
+/* 탭 영역 안내 */
+.guide {
+  position: absolute; inset: 0; z-index: 18;
+  display: grid; grid-template-columns: 30% 40% 30%;
+  background: rgba(0, 0, 0, 0.78); color: #fff;
+}
+.guide[hidden] { display: none; }
+.guide-zone {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: 15px; font-weight: 600; padding: 8px;
+}
+.guide-zone + .guide-zone { border-left: 1px dashed rgba(255, 255, 255, 0.35); }
+.guide-zone span { white-space: nowrap; background: rgba(255, 255, 255, 0.16); border-radius: 12px; padding: 14px 10px; }
+.guide-center span { background: rgba(255, 255, 255, 0.08); }
+.guide-foot {
+  position: absolute; left: 24px; right: 24px; bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(0, 0, 0, 0.7);
+  text-align: center; font-size: 14px; line-height: 1.7; color: rgba(255, 255, 255, 0.9);
+}
 
 /* 검색 결과 탐색 바 */
 .search-nav {
