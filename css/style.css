@@ -284,7 +284,7 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
   border-bottom: 1px solid var(--border);
   margin: 0;
 }
-.panel-head h2 { font-size: 17px; padding-left: 4px; }
+.panel-head h2 { font-size: 17px; padding-left: 4px; flex: 1; }
 .panel-head input {
   flex: 1; min-width: 0; font: inherit; font-size: 16px;
   padding: 10px 12px; border-radius: 10px; border: 0;
@@ -310,6 +310,9 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
   z-index: 50; pointer-events: none; max-width: 80vw; text-align: center;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 14px; padding-right: 8px; }
+.toast-action { color: #8ab4f8; font-weight: 600; padding: 4px 8px; border-radius: 12px; white-space: nowrap; }
+.toast-action:active { background: rgba(255, 255, 255, 0.12); }
 
 @media (min-width: 700px) {
   .sheet, .panel { max-width: 560px; margin: 0 auto; }

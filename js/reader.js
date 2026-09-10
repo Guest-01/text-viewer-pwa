@@ -108,6 +108,31 @@ export class Reader {
     return this.position;
   }
 
+  /** 지금 화면에 보이는 글자 범위 [start, end). end는 화면 아래로 벗어난 첫 글자. */
+  getVisibleRange() {
+    if (!this.index) return [0, 0];
+    const start = this.getPosition();
+    let end = null;
+    if (this.mode === 'scroll') {
+      if (this._scroller) {
+        const bottom = this._scroller.getBoundingClientRect().bottom - 1;
+        end = this._firstCharWhere(
+          this._content.querySelectorAll('p'),
+          (rects) => {
+            if (rects[0].top >= bottom) return 2;
+            if (rects[rects.length - 1].bottom <= bottom) return -1;
+            return 0;
+          },
+          (rect) => rect.top >= bottom,
+        );
+      }
+    } else if (this.screen + 1 < this.screenCount) {
+      end = this._screenStart(this.screen + 1);
+      if (end <= start) end = null; // 다음 화면이 아직 렌더되지 않은 경우
+    }
+    return [start, end == null ? this.index.length : end];
+  }
+
   next() {
     if (!this.index) return;
     if (this.mode === 'scroll') {

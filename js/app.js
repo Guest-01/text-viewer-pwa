@@ -277,29 +277,52 @@ function goLibrary() {
 }
 
 // ---------- 책갈피 ----------
-function currentBookmarkIndex() {
-  if (!state.book) return -1;
-  const pos = state.book.position;
-  return state.book.bookmarks.findIndex((b) => b.offset === pos);
+// "현재 화면 안에 있는 책갈피"를 기준으로 판단한다. 오프셋이 정확히 같아야만 인식하면
+// 스크롤 모드에서 한 줄만 움직여도 빈 아이콘이 되어 쓸모가 없다.
+function visibleBookmarkIndex() {
+  if (!state.book || !state.reader) return -1;
+  const [start, end] = state.reader.getVisibleRange();
+  return state.book.bookmarks.findIndex((b) => b.offset >= start && b.offset < end);
 }
 function updateBookmarkIcon() {
-  const has = currentBookmarkIndex() >= 0;
+  const has = visibleBookmarkIndex() >= 0;
   $('#btn-bookmark use').setAttribute('href', has ? '#i-bookmark-on' : '#i-bookmark');
+  $('#btn-bookmark').setAttribute('aria-label', has ? '책갈피 삭제' : '책갈피 추가');
+}
+function addBookmarkHere() {
+  const pos = state.reader.getPosition();
+  if (state.book.bookmarks.some((b) => b.offset === pos)) {
+    toast('이미 이 위치에 책갈피가 있습니다');
+    return;
+  }
+  state.book.bookmarks.push({ offset: pos, snippet: snippetAt(state.index, pos), createdAt: Date.now() });
+  state.book.bookmarks.sort((a, b) => a.offset - b.offset);
+  toast('책갈피를 추가했습니다');
+  updateBookmarkIcon();
+  flushSave();
+}
+// 삭제는 확인 대신 "실행 취소"로 되돌릴 수 있게 한다.
+function removeBookmark(i) {
+  const [removed] = state.book.bookmarks.splice(i, 1);
+  const book = state.book;
+  updateBookmarkIcon();
+  flushSave();
+  if (!$('#ov-bookmarks').hidden) renderBookmarks();
+  toast('책갈피를 삭제했습니다', 4000, { label: '실행 취소', onClick: restore });
+  function restore() {
+    if (state.book !== book) return;
+    book.bookmarks.push(removed);
+    book.bookmarks.sort((a, b) => a.offset - b.offset);
+    updateBookmarkIcon();
+    flushSave();
+    if (!$('#ov-bookmarks').hidden) renderBookmarks();
+  }
 }
 function toggleBookmark() {
   if (!state.book || !state.reader) return;
-  const pos = state.reader.getPosition();
-  const i = state.book.bookmarks.findIndex((b) => b.offset === pos);
-  if (i >= 0) {
-    state.book.bookmarks.splice(i, 1);
-    toast('책갈피를 삭제했습니다');
-  } else {
-    state.book.bookmarks.push({ offset: pos, snippet: snippetAt(state.index, pos), createdAt: Date.now() });
-    state.book.bookmarks.sort((a, b) => a.offset - b.offset);
-    toast('책갈피를 추가했습니다');
-  }
-  updateBookmarkIcon();
-  flushSave();
+  const i = visibleBookmarkIndex();
+  if (i >= 0) removeBookmark(i);
+  else addBookmarkHere();
 }
 function renderBookmarks() {
   const list = $('#bookmark-list');
@@ -321,12 +344,7 @@ function renderBookmarks() {
       state.reader.goTo(bm.offset);
       setBarsVisible(false);
     });
-    li.querySelector('.row-del').addEventListener('click', () => {
-      state.book.bookmarks.splice(i, 1);
-      flushSave();
-      updateBookmarkIcon();
-      renderBookmarks();
-    });
+    li.querySelector('.row-del').addEventListener('click', () => removeBookmark(i));
     list.appendChild(li);
   });
 }
@@ -539,6 +557,11 @@ async function init() {
   $('#btn-bookmarks').addEventListener('click', () => {
     renderBookmarks();
     openOverlay('ov-bookmarks');
+  });
+  $('#btn-add-bookmark').addEventListener('click', () => {
+    if (!state.book || !state.reader) return;
+    addBookmarkHere();
+    renderBookmarks();
   });
   $('#btn-mode').addEventListener('click', () => {
     const mode = state.settings.mode === 'page' ? 'scroll' : 'page';

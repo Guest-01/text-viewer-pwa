@@ -49,19 +49,35 @@ document.addEventListener('click', (e) => {
 });
 
 let toastTimer = null;
-export function toast(message, ms = 1800) {
+/** 토스트. action = { label, onClick } 을 주면 버튼이 달린 토스트가 된다 (실행 취소, 이전 위치로 등). */
+export function toast(message, ms = 1800, action = null) {
   const el = document.getElementById('toast');
   if (!el) return;
   el.textContent = message;
+  el.classList.toggle('has-action', !!action);
+  if (action) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => {
+      hideToast();
+      action.onClick();
+    });
+    el.appendChild(btn);
+  }
   el.hidden = false;
   requestAnimationFrame(() => el.classList.add('show'));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    el.classList.remove('show');
-    setTimeout(() => {
-      if (!el.classList.contains('show')) el.hidden = true;
-    }, 200);
-  }, ms);
+  toastTimer = setTimeout(hideToast, ms);
+}
+export function hideToast() {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  clearTimeout(toastTimer);
+  el.classList.remove('show');
+  setTimeout(() => {
+    if (!el.classList.contains('show')) el.hidden = true;
+  }, 200);
 }
 
 /** 롱프레스 감지. 롱프레스 후 발생하는 click은 억제한다. */
