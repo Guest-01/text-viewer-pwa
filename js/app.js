@@ -28,6 +28,7 @@ const state = {
   lowerText: null,
   installPrompt: null,
   wakeLock: null,
+  search: null, // { results, q, idx } 결과로 이동한 뒤 탐색 바 상태
 };
 
 // ---------- 설정 ----------
@@ -235,6 +236,7 @@ function decodeAndLoad(position) {
 }
 
 function closeReaderScreen() {
+  closeSearchNav();
   if (state.reader) {
     flushSave();
     state.reader.destroy();
@@ -268,6 +270,42 @@ function flushSave() {
 
 function setBarsVisible(visible) {
   $('#reader').classList.toggle('bars-visible', visible);
+}
+
+// ---------- 점프와 되돌리기 ----------
+// 슬라이더·검색·책갈피로 멀리 이동한 뒤 원래 자리로 돌아올 수 있게 한다.
+function jumpTo(offset) {
+  if (!state.reader || !state.index) return;
+  const from = state.reader.getPosition();
+  state.reader.goTo(offset);
+  const pct = (o) => `${((Math.min(o, state.index.length) / Math.max(1, state.index.length)) * 100).toFixed(1)}%`;
+  toast(`${pct(from)} → ${pct(offset)} 이동`, 5000, { label: '이전 위치로', onClick: () => jumpTo(from) });
+}
+
+// ---------- 검색 결과 탐색 ----------
+function openSearchNav(results, q, idx) {
+  state.search = { results, q, idx: -1 };
+  jumpTo(results[idx]);
+  gotoSearchResult(idx);
+}
+function gotoSearchResult(i) {
+  const s = state.search;
+  if (!s || !state.reader) return;
+  const n = s.results.length;
+  const idx = ((i % n) + n) % n;
+  const off = s.results[idx];
+  if (idx !== s.idx) {
+    s.idx = idx;
+    if (state.reader.getPosition() !== off) state.reader.goTo(off);
+  }
+  state.reader.highlight(off, s.q.length);
+  $('#sn-label').innerHTML = `${idx + 1} / ${n}<span class="q">${escapeHtml(s.q)}</span>`;
+  $('#search-nav').hidden = false;
+}
+function closeSearchNav() {
+  state.search = null;
+  $('#search-nav').hidden = true;
+  if (state.reader) state.reader.clearHighlight();
 }
 
 function goLibrary() {
@@ -341,7 +379,7 @@ function renderBookmarks() {
       <button class="icon-btn row-del" aria-label="삭제"><svg><use href="#i-delete"/></svg></button>`;
     li.querySelector('.row-main').addEventListener('click', () => {
       closeOverlay();
-      state.reader.goTo(bm.offset);
+      jumpTo(bm.offset);
       setBarsVisible(false);
     });
     li.querySelector('.row-del').addEventListener('click', () => removeBookmark(i));
@@ -369,7 +407,7 @@ function runSearch() {
   $('#search-status').textContent = results.length >= MAX_SEARCH_RESULTS ? `${MAX_SEARCH_RESULTS}개 이상` : `${results.length}개`;
   const len = Math.max(1, text.length);
   const frag = document.createDocumentFragment();
-  for (const off of results) {
+  results.forEach((off, idx) => {
     const s = Math.max(0, off - 28);
     const e = Math.min(text.length, off + q.length + 40);
     const before = escapeHtml(text.slice(s, off).replace(/\s+/g, ' '));
@@ -383,12 +421,11 @@ function runSearch() {
     </button>`;
     li.querySelector('button').addEventListener('click', () => {
       closeOverlay();
-      state.reader.goTo(off);
-      state.reader.highlight(off, q.length);
+      openSearchNav(results, q, idx);
       setBarsVisible(false);
     });
     frag.appendChild(li);
-  }
+  });
   list.appendChild(frag);
 }
 
@@ -552,8 +589,14 @@ async function init() {
     $('#progress-label').textContent = `${(progress.value / 100).toFixed(1)}%`;
   });
   progress.addEventListener('change', () => {
-    if (state.reader) state.reader.goTo((progress.value / 10000) * state.index.length);
+    if (state.reader) jumpTo((progress.value / 10000) * state.index.length);
   });
+
+  // 검색 결과 탐색 바
+  $('#sn-prev').addEventListener('click', () => gotoSearchResult(state.search ? state.search.idx - 1 : 0));
+  $('#sn-next').addEventListener('click', () => gotoSearchResult(state.search ? state.search.idx + 1 : 0));
+  $('#sn-close').addEventListener('click', closeSearchNav);
+  $('#sn-label').addEventListener('click', () => openOverlay('ov-search'));
   $('#btn-bookmarks').addEventListener('click', () => {
     renderBookmarks();
     openOverlay('ov-bookmarks');

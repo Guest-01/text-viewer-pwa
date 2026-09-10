@@ -301,6 +301,23 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
 .row-sub mark { background: var(--mark); color: inherit; border-radius: 2px; }
 .row-del { color: var(--muted); margin-right: 4px; }
 
+/* 검색 결과 탐색 바 */
+.search-nav {
+  position: absolute; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px;
+  background: var(--bar-bg); color: var(--bar-fg);
+  border: 1px solid var(--border); border-radius: 26px; padding: 2px 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  z-index: 15;
+}
+.search-nav[hidden] { display: none; }
+.search-nav-label { padding: 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; }
+.search-nav-label .q { color: var(--muted); font-size: 12px; display: block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flip-x svg { transform: scaleX(-1); }
+/* 바가 보일 때는 탐색 바를 하단 바 위로 올린다 */
+.reader.bars-visible .search-nav { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+
 .toast {
   position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   transform: translate(-50%, 10px);
@@ -310,7 +327,7 @@ input[type="range"] { flex: 1; accent-color: var(--accent); height: 28px; margin
   z-index: 50; pointer-events: none; max-width: 80vw; text-align: center;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
-.toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 14px; padding-right: 8px; }
+.toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 14px; padding-right: 8px; white-space: nowrap; max-width: 92vw; }
 .toast-action { color: #8ab4f8; font-weight: 600; padding: 4px 8px; border-radius: 12px; white-space: nowrap; }
 .toast-action:active { background: rgba(255, 255, 255, 0.12); }
 

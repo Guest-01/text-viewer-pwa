@@ -235,6 +235,10 @@ export class Reader {
   }
 
   // ---------- 공통 ----------
+  clearHighlight() {
+    this._clearHighlight();
+  }
+
   _clearHighlight() {
     if (this._highlight && 'highlights' in CSS) CSS.highlights.delete('tv-search');
     this._highlight = null;
