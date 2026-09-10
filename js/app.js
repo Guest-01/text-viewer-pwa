@@ -7,7 +7,7 @@ import { toast, openOverlay, closeOverlay, onLongPress, formatBytes, formatDate,
 
 const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
-const DEFAULT_SETTINGS = { fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', theme: 'light', mode: 'page' };
+const DEFAULT_SETTINGS = { fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', theme: 'light', mode: 'page', spread: 'auto' };
 const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
 const MAX_SEARCH_RESULTS = 300;
 
@@ -194,6 +194,7 @@ function decodeAndLoad(position) {
       onTap: () => setBarsVisible(!$('#reader').classList.contains('bars-visible')),
     });
   }
+  state.reader.setSpread(state.settings.spread);
   state.reader.load(state.index, position, state.settings.mode);
 }
 
@@ -355,6 +356,8 @@ function bindSettings() {
     else if (key === 'mode') {
       applyReaderStyle();
       if (state.reader) state.reader.setMode(value);
+    } else if (key === 'spread') {
+      if (state.reader) state.reader.setSpread(value);
     } else {
       applyReaderStyle();
       if (state.reader) state.reader.relayout();

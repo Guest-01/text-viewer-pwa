@@ -1,8 +1,18 @@
-// 뷰어 엔진: 페이지 모드(다단 레이아웃 + 가로 이동) / 스크롤 모드(청크 윈도우)
+// 뷰어 엔진
+//  - 페이지 모드: CSS 다단 레이아웃 + 가로 이동. 현재 청크 앞뒤를 같은 컨테이너에 이어 붙여
+//    청크 경계 없이 넘기고, 1쪽/2쪽 보기와 손가락을 따라오는 드래그 넘김을 지원한다.
+//  - 스크롤 모드: 청크 윈도우
 import { findBlock, chunkOfBlock, chunkRange, blockText } from './text.js';
 
-const GAP = 40; // 페이지(컬럼) 사이 간격 px
+const GAP = 40; // 컬럼(페이지) 사이 간격 px. 2쪽 보기에서는 가운데 여백이 된다.
 const MAX_SCROLL_CHUNKS = 5;
+const SPREAD_MIN_WIDTH = 600; // 자동 모드에서 2쪽 보기로 전환하는 최소 너비 px
+const TURN_MS = 280; // 탭/키보드 페이지 넘김 시간
+const TURN_EASE = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+const DRAG_START_PX = 8; // 이 이상 움직여야 드래그로 인식
+const FLICK_VELOCITY = 0.3; // px/ms. 이보다 빠르면 거리와 무관하게 넘긴다
+const COMMIT_RATIO = 0.25; // 화면 너비 대비 이 비율 이상 끌면 넘긴다
+const RUBBER = 0.3; // 처음/끝에서 끌 때 저항
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
@@ -22,19 +32,30 @@ export class Reader {
     this.onTap = handlers.onTap || (() => {});
     this.index = null;
     this.mode = 'page';
+    this.spread = 'auto'; // 'auto' | '1' | '2'
     this.position = 0;
     this._anchor = null; // 마지막 사용자 이동 지점 (재배치 기준)
-    this.chunk = -1;
-    this.page = 0;
-    this.pageCount = 1;
     this.W = 0;
     this.H = 0;
-    this._win = null; // 스크롤 모드에서 렌더된 청크 범위 [first, last]
+    this._win = null; // 렌더된 청크 범위 [first, last]
     this._busy = false;
     this._scrollTimer = null;
     this._resizeTimer = null;
     this._lastSize = '';
     this._highlight = null;
+
+    // 페이지 모드 상태
+    this.cols = 1; // 한 화면의 페이지(컬럼) 수
+    this.colW = 0; // 컬럼 너비
+    this.screen = 0; // 현재 화면 번호 (cols개 컬럼 묶음)
+    this.screenCount = 1;
+    this._chunkEls = new Map(); // 청크 번호 → 래퍼 요소
+    this._colRange = new Map(); // 청크 번호 → [첫 컬럼, 마지막 컬럼]
+    this._spacer = 0; // 앞쪽 빈 컬럼 수 (2쪽 보기 좌우 짝 유지용)
+    this._x = 0; // pages의 현재 translateX
+    this._anim = null;
+    this._drag = null;
+    this._maintainTimer = null;
 
     this._ro = new ResizeObserver(() => this._onResize());
     this._ro.observe(viewport);
@@ -57,6 +78,12 @@ export class Reader {
     this._build();
     this.goTo(anchor);
     this._anchor = anchor;
+  }
+
+  /** 2쪽 보기 설정: 'auto' | '1' | '2' */
+  setSpread(spread) {
+    this.spread = spread;
+    if (this.mode === 'page' && this.index && this._resolveCols() !== this.cols) this.relayout();
   }
 
   /**
@@ -92,14 +119,15 @@ export class Reader {
       s.scrollBy({ top: s.clientHeight - 32, behavior: 'smooth' });
       return;
     }
-    if (this.page < this.pageCount - 1) {
-      this._showPage(this.page + 1, true);
-    } else if (this.chunk < this.index.chunkCount - 1) {
-      this._renderChunk(this.chunk + 1);
-      this._showPage(0, false);
-    } else {
-      this.onEdge('end');
+    if (this._drag && this._drag.moved) return;
+    if (this.screen >= this.screenCount - 1) {
+      this._maintain();
+      if (this.screen >= this.screenCount - 1) {
+        this.onEdge('end');
+        return;
+      }
     }
+    this._showScreen(this.screen + 1, TURN_MS);
   }
 
   prev() {
@@ -113,14 +141,15 @@ export class Reader {
       s.scrollBy({ top: -(s.clientHeight - 32), behavior: 'smooth' });
       return;
     }
-    if (this.page > 0) {
-      this._showPage(this.page - 1, true);
-    } else if (this.chunk > 0) {
-      this._renderChunk(this.chunk - 1);
-      this._showPage(this.pageCount - 1, false);
-    } else {
-      this.onEdge('start');
+    if (this._drag && this._drag.moved) return;
+    if (this.screen <= 0) {
+      this._maintain();
+      if (this.screen <= 0) {
+        this.onEdge('start');
+        return;
+      }
     }
+    this._showScreen(this.screen - 1, TURN_MS);
   }
 
   /** 글자 오프셋으로 이동한다. */
@@ -131,14 +160,11 @@ export class Reader {
     const b = findBlock(this.index, offset);
     const c = chunkOfBlock(this.index, b);
     if (this.mode === 'page') {
-      if (c !== this.chunk) this._renderChunk(c);
-      const p = this._blockEl(b);
-      const rect = this._rectAt(p, offset - this.index.starts[b]);
-      const base = this.pages.getBoundingClientRect().left;
-      let page = Math.floor((rect.left - base + 1) / (this.W + GAP));
-      if (!Number.isFinite(page)) page = 0;
-      this._showPage(clamp(page, 0, this.pageCount - 1), false);
+      // 첫 화면은 해당 청크만 그려 빠르게 보여주고, 앞뒤 청크는 다음 프레임에 붙인다.
+      if (!this._win || c < this._win[0] || c > this._win[1]) this._renderWindow(c, c);
+      this._showScreen(this._screenOfOffset(offset), 0);
       this._anchor = offset;
+      this._scheduleMaintain();
     } else {
       const last = this.index.chunkCount - 1;
       if (!this._win || c < this._win[0] || c > this._win[1]) {
@@ -173,6 +199,11 @@ export class Reader {
 
   destroy() {
     this._ro.disconnect();
+    this._cancelAnim();
+    clearTimeout(this._maintainTimer);
+    clearTimeout(this._resizeTimer);
+    clearTimeout(this._scrollTimer);
+    this._drag = null;
     this._clearHighlight();
     this.viewport.innerHTML = '';
     this.index = null;
@@ -185,9 +216,17 @@ export class Reader {
   }
 
   _build() {
+    this._cancelAnim();
+    clearTimeout(this._maintainTimer);
+    this._drag = null;
     this.viewport.innerHTML = '';
-    this.chunk = -1;
     this._win = null;
+    this._chunkEls = new Map();
+    this._colRange = new Map();
+    this._spacer = 0;
+    this._x = 0;
+    this.screen = 0;
+    this.screenCount = 1;
     this._clearHighlight();
     if (this.mode === 'page') {
       this.viewport.className = 'viewport mode-page';
@@ -203,6 +242,7 @@ export class Reader {
       this._measure();
     } else {
       this.viewport.className = 'viewport mode-scroll';
+      delete this.viewport.dataset.cols;
       const scroller = el('div', 'scroller');
       const content = el('div', 'scroll-content');
       scroller.appendChild(content);
@@ -243,15 +283,20 @@ export class Reader {
     return this.viewport.querySelector(`p[data-block="${b}"]`);
   }
 
+  /** 높이가 있는 조각 사각형만 (컬럼 경계에 남는 높이 0 조각 제외) */
+  _solidRects(node) {
+    const all = Array.from(node.getClientRects());
+    const solid = all.filter((r) => r.height > 0.5);
+    return solid.length ? solid : all;
+  }
+
   /** 블록 p 안의 k번째 글자 위치 사각형 */
   _rectAt(p, k) {
     if (!p) return { left: 0, top: 0 };
     const t = p.firstChild;
     if (!t || t.nodeType !== 3 || k <= 0) {
-      // 컬럼 경계에서 높이 0짜리 조각이 앞 컬럼에 남을 수 있으므로 실제 높이가 있는 첫 조각을 쓴다.
-      const rects = Array.from(p.getClientRects());
-      const solid = rects.find((r) => r.height > 0.5);
-      return solid || rects[rects.length - 1] || p.getBoundingClientRect();
+      const rects = this._solidRects(p);
+      return rects[0] || p.getBoundingClientRect();
     }
     k = Math.min(k, t.length - 1);
     const range = document.createRange();
@@ -263,13 +308,12 @@ export class Reader {
 
   /**
    * 블록 목록을 순서대로 훑어, 조건(inside)을 처음 만족하는 글자의 오프셋을 찾는다.
-   * blockTest(rects) → -1(이전 영역), 0(걸침), 1(이후 영역), 2(블록 전체가 목표 영역에서 시작)
+   * blockTest(rects) → -1(이전 영역), 0(걸침), 1(이후 영역, 중단), 2(블록 전체가 목표 영역에서 시작)
    * charTest(rect) → true면 목표 영역 안
    */
   _firstCharWhere(blocks, blockTest, charTest) {
     for (const p of blocks) {
-      let rects = Array.from(p.getClientRects()).filter((r) => r.height > 0.5);
-      if (!rects.length) rects = Array.from(p.getClientRects());
+      const rects = this._solidRects(p);
       if (!rects.length) continue;
       const r = blockTest(rects);
       if (r === 1) break;
@@ -297,72 +341,313 @@ export class Reader {
     return null;
   }
 
-  // ---------- 페이지 모드 ----------
+  // ---------- 페이지 모드: 배치 ----------
+  _resolveCols() {
+    if (this.spread === '1') return 1;
+    if (this.spread === '2') return 2;
+    return this.W >= SPREAD_MIN_WIDTH ? 2 : 1;
+  }
+
   _measure() {
     this.W = this.stage.clientWidth;
     this.H = this.stage.clientHeight;
+    this.cols = this._resolveCols();
+    this.colW = (this.W - (this.cols - 1) * GAP) / this.cols;
     const s = this.pages.style;
     s.width = `${this.W}px`;
     s.height = `${this.H}px`;
-    s.columnWidth = `${this.W}px`;
+    // column-width를 실제 컬럼 너비보다 살짝 작게 주면 브라우저가 정확히 cols개 컬럼으로 채운다.
+    s.columnWidth = `${this.cols > 1 ? this.colW - 1 : this.W}px`;
     s.columnGap = `${GAP}px`;
+    this.viewport.dataset.cols = String(this.cols);
   }
 
-  _renderChunk(c) {
-    this.chunk = c;
-    this._clearHighlight();
-    this.pages.style.transition = 'none';
-    this.pages.style.transform = 'translateX(0)';
-    this.pages.replaceChildren(this._fragmentForChunk(c));
-    this.pageCount = this._countPages();
-    this.page = 0;
+  _colStride() {
+    return this.colW + GAP;
   }
 
-  _countPages() {
-    const ps = this.pages.children;
-    if (!ps.length || this.W <= 0) return 1;
+  _screenStride() {
+    return this.W + GAP;
+  }
+
+  /** 좌표 → 컬럼 번호. base는 pages의 왼쪽 좌표(transform 포함) */
+  _colOf(left, base) {
+    return Math.floor((left - base + 1) / this._colStride());
+  }
+
+  _pageChunkEl(c) {
+    const d = el('div', 'chunk');
+    d.dataset.chunk = c;
+    d.appendChild(this._fragmentForChunk(c));
+    this._chunkEls.set(c, d);
+    return d;
+  }
+
+  /** 청크 [first, last]만으로 처음부터 다시 그린다. */
+  _renderWindow(first, last) {
+    this._cancelAnim();
+    this._chunkEls = new Map();
+    const frag = document.createDocumentFragment();
+    for (let c = first; c <= last; c++) frag.appendChild(this._pageChunkEl(c));
+    this.pages.replaceChildren(frag);
+    this._spacer = 0;
+    this._win = [first, last];
+    this._measureChunks();
+  }
+
+  _setSpacer(n) {
+    const cur = this.pages.querySelectorAll(':scope > .spacer');
+    for (let i = cur.length; i > n; i--) cur[i - 1].remove();
+    for (let i = cur.length; i < n; i++) this.pages.prepend(el('div', 'spacer'));
+    this._spacer = n;
+  }
+
+  /** 각 청크가 차지하는 컬럼 범위와 전체 컬럼 수를 잰다. */
+  _measureChunks() {
     const base = this.pages.getBoundingClientRect().left;
-    let maxLeft = 0;
-    // 마지막 몇 개 블록의 마지막 조각 위치로 총 페이지 수를 구한다.
-    for (let i = ps.length - 1, n = 0; i >= 0 && n < 3; i--, n++) {
-      const rects = ps[i].getClientRects();
-      if (rects.length) maxLeft = Math.max(maxLeft, rects[rects.length - 1].left - base);
+    const col = (left) => this._colOf(left, base);
+    this._colRange = new Map();
+    let N = 0;
+    for (const [c, d] of this._chunkEls) {
+      const ps = d.children;
+      if (!ps.length) continue;
+      const firstRects = this._solidRects(ps[0]);
+      const start = col(firstRects.length ? firstRects[0].left : d.getBoundingClientRect().left);
+      let end = start;
+      const wrap = this._solidRects(d);
+      if (wrap.length) end = Math.max(end, col(wrap[wrap.length - 1].left));
+      // 래퍼 조각이 컬럼별로 나오지 않는 브라우저를 대비해 마지막 블록들로도 확인한다.
+      for (let i = ps.length - 1, n = 0; i >= 0 && n < 3; i--, n++) {
+        const rs = this._solidRects(ps[i]);
+        if (rs.length) end = Math.max(end, col(rs[rs.length - 1].left));
+      }
+      this._colRange.set(c, [start, end]);
+      N = Math.max(N, end + 1);
     }
-    const byScroll = (this.pages.scrollWidth + GAP) / (this.W + GAP);
-    const byRect = Math.floor((maxLeft + 1) / (this.W + GAP)) + 1;
-    return Math.max(1, byRect, Math.round(byScroll));
+    N = Math.max(N, Math.round((this.pages.scrollWidth + GAP) / this._colStride()));
+    this._N = Math.max(1, N);
+    this.screenCount = Math.max(1, Math.ceil(this._N / this.cols));
   }
 
-  _showPage(i, animate) {
-    this.page = clamp(i, 0, this.pageCount - 1);
-    this._clearHighlight();
-    const x = -this.page * (this.W + GAP);
-    this.pages.style.transition = animate ? 'transform .14s ease-out' : 'none';
+  /** 컬럼 c0를 포함하거나 그 뒤에서 시작하는 첫 청크 */
+  _chunkAtCol(c0) {
+    for (let c = this._win[0]; c <= this._win[1]; c++) {
+      const r = this._colRange.get(c);
+      if (r && r[1] >= c0) return c;
+    }
+    return this._win[1];
+  }
+
+  /** 화면 s의 첫 글자 오프셋 (transform과 무관하게 기하학적으로 계산) */
+  _screenStart(s) {
+    const c0 = s * this.cols;
+    const base = this.pages.getBoundingClientRect().left;
+    const col = (left) => this._colOf(left, base);
+    for (let c = this._win[0]; c <= this._win[1]; c++) {
+      const r = this._colRange.get(c);
+      if (!r || r[1] < c0) continue;
+      const found = this._firstCharWhere(
+        this._chunkEls.get(c).children,
+        (rects) => {
+          if (col(rects[rects.length - 1].left) < c0) return -1;
+          return col(rects[0].left) >= c0 ? 2 : 0;
+        },
+        (rect) => col(rect.left) >= c0,
+      );
+      if (found != null) return found;
+    }
+    return this.position;
+  }
+
+  /** 오프셋이 놓인 화면 번호 */
+  _screenOfOffset(offset) {
+    const b = findBlock(this.index, offset);
+    const p = this._blockEl(b);
+    if (!p) return 0;
+    const rect = this._rectAt(p, offset - this.index.starts[b]);
+    const base = this.pages.getBoundingClientRect().left;
+    return clamp(Math.floor(this._colOf(rect.left, base) / this.cols), 0, this.screenCount - 1);
+  }
+
+  // ---------- 페이지 모드: 이동 ----------
+  _setX(x) {
+    this.pages.style.transition = 'none';
     this.pages.style.transform = `translateX(${x}px)`;
-    if (!animate) void this.pages.offsetWidth; // 강제 리플로우로 transition 무시
-    this.position = this._computePageStart();
+    this._x = x;
+  }
+
+  /** 애니메이션 중이면 실제 그려진 위치를 읽는다. */
+  _currentX() {
+    if (!this._anim) return this._x;
+    const m = getComputedStyle(this.pages).transform;
+    const mm = m && m.match(/matrix\((.+)\)/);
+    if (mm) {
+      const v = mm[1].split(',').map(Number);
+      if (Number.isFinite(v[4])) return v[4];
+    }
+    return this._x;
+  }
+
+  _cancelAnim() {
+    if (!this._anim) return;
+    this.pages.removeEventListener('transitionend', this._anim.onEnd);
+    clearTimeout(this._anim.timer);
+    this._anim = null;
+  }
+
+  _animateTo(x, ms, done) {
+    const from = this._currentX();
+    this._cancelAnim();
+    if (Math.abs(from - x) < 0.5) {
+      this._setX(x);
+      done();
+      return;
+    }
+    const pages = this.pages;
+    this._setX(from);
+    void pages.offsetWidth; // 시작 위치를 확정한 뒤 전환 시작
+    pages.style.transition = `transform ${ms}ms ${TURN_EASE}`;
+    pages.style.transform = `translateX(${x}px)`;
+    this._x = x;
+    const finish = () => {
+      this._cancelAnim();
+      pages.style.transition = 'none';
+      done();
+    };
+    const onEnd = (e) => {
+      if (e.target === pages && e.propertyName === 'transform') finish();
+    };
+    pages.addEventListener('transitionend', onEnd);
+    this._anim = { onEnd, timer: setTimeout(finish, ms + 100) };
+  }
+
+  /** 화면 s로 이동. ms가 0이면 즉시, 아니면 해당 시간 동안 애니메이션 */
+  _showScreen(s, ms) {
+    s = clamp(s, 0, this.screenCount - 1);
+    this._clearHighlight();
+    this.screen = s;
+    this.position = this._screenStart(s);
     this._anchor = this.position;
     this.onPosition(this.position);
+    const x = -s * this._screenStride();
+    if (ms > 0) {
+      this._animateTo(x, ms, () => this._maintain());
+    } else {
+      this._cancelAnim();
+      this._setX(x);
+    }
   }
 
-  /** 현재 페이지의 첫 글자 오프셋 (transform 애니메이션과 무관하게 기하학적으로 계산) */
-  _computePageStart() {
-    const base = this.pages.getBoundingClientRect().left;
-    const pw = this.W + GAP;
-    const pageOf = (left) => Math.floor((left - base + 1) / pw);
-    const i = this.page;
-    const found = this._firstCharWhere(
-      this.pages.children,
-      (rects) => {
-        const first = pageOf(rects[0].left);
-        const last = pageOf(rects[rects.length - 1].left);
-        if (first > i) return 1;
-        if (last < i) return -1;
-        return first === i ? 2 : 0;
-      },
-      (rect) => pageOf(rect.left) >= i,
-    );
-    return found != null ? found : this.position;
+  _scheduleMaintain() {
+    clearTimeout(this._maintainTimer);
+    // 첫 화면이 그려진 뒤에 앞뒤 청크를 붙인다.
+    this._maintainTimer = setTimeout(() => this._maintain(), 16);
+  }
+
+  /**
+   * 현재 화면이 속한 청크의 앞뒤 하나씩만 남기도록 청크를 붙이고 뗀다.
+   * 청크는 모두 컬럼 맨 위에서 시작하므로(break-before: column) 앞쪽 청크를 떼어도
+   * 나머지 배치는 통째로 왼쪽으로 옮겨질 뿐이며, 2쪽 보기의 좌우 짝은 spacer로 유지한다.
+   */
+  _maintain() {
+    clearTimeout(this._maintainTimer);
+    this._maintainTimer = null;
+    if (!this.index || this.mode !== 'page' || !this._win) return;
+    if (this._drag && this._drag.moved) return;
+    const total = this.index.chunkCount;
+    const cc = this._chunkAtCol(this.screen * this.cols);
+    const lo = Math.max(0, cc - 1);
+    const hi = Math.min(total - 1, cc + 1);
+    let changed = false;
+    while (this._win[1] < hi && this._appendChunk()) changed = true;
+    while (this._win[0] > lo && this._prependChunk()) changed = true;
+    while (this._win[1] > hi && this._removeLast()) changed = true;
+    while (this._win[0] < lo && this._removeFirst()) changed = true;
+    if (!changed) return;
+    this._measureChunks();
+    this.screen = this._screenOfOffset(this.position);
+    this._setX(-this.screen * this._screenStride());
+  }
+
+  _appendChunk() {
+    const c = this._win[1] + 1;
+    if (c >= this.index.chunkCount) return false;
+    this.pages.appendChild(this._pageChunkEl(c));
+    this._win[1] = c;
+    return true;
+  }
+
+  _prependChunk() {
+    const c = this._win[0] - 1;
+    if (c < 0) return false;
+    const d = this._pageChunkEl(c);
+    this.pages.insertBefore(d, this._chunkEls.get(this._win[0]));
+    this._win[0] = c;
+    this._measureChunks();
+    const r = this._colRange.get(c);
+    const P = r[1] - r[0] + 1;
+    // 앞에 P개 컬럼이 생겼으므로 spacer를 줄여 뒤 청크들의 짝(홀짝)을 유지한다.
+    // 책의 맨 앞(청크 0)에는 빈 페이지를 두지 않는다.
+    const np = c === 0 ? 0 : (((this._spacer - P) % this.cols) + this.cols) % this.cols;
+    if (np !== this._spacer) this._setSpacer(np);
+    return true;
+  }
+
+  _removeLast() {
+    const c = this._win[1];
+    if (c <= this._win[0]) return false;
+    this._chunkEls.get(c).remove();
+    this._chunkEls.delete(c);
+    this._colRange.delete(c);
+    this._win[1] = c - 1;
+    return true;
+  }
+
+  _removeFirst() {
+    const c = this._win[0];
+    if (c >= this._win[1]) return false;
+    const r = this._colRange.get(c);
+    const R = r ? r[1] - r[0] + 1 : 0;
+    this._chunkEls.get(c).remove();
+    this._chunkEls.delete(c);
+    this._colRange.delete(c);
+    this._win[0] = c + 1;
+    const np = (this._spacer + R) % this.cols;
+    if (np !== this._spacer) this._setSpacer(np);
+    return true;
+  }
+
+  // ---------- 페이지 모드: 드래그 ----------
+  _rubber(x) {
+    const minX = -(this.screenCount - 1) * this._screenStride();
+    if (x > 0) return x * RUBBER;
+    if (x < minX) return minX + (x - minX) * RUBBER;
+    return x;
+  }
+
+  _endDrag(d, e, cancelled) {
+    const stride = this._screenStride();
+    const x = this._x;
+    const t = -x / stride; // 현재 위치를 화면 단위로
+    const stale = e.timeStamp - d.lastT > 80; // 멈춘 뒤 뗐으면 속도 무시
+    const vx = cancelled || stale ? 0 : d.vx;
+    const baseScreen = Math.round(-d.baseX / stride);
+    let target;
+    if (vx < -FLICK_VELOCITY) target = Math.ceil(t - 0.01);
+    else if (vx > FLICK_VELOCITY) target = Math.floor(t + 0.01);
+    else {
+      const moved = t - baseScreen;
+      target = baseScreen + (moved > COMMIT_RATIO ? 1 : moved < -COMMIT_RATIO ? -1 : 0);
+    }
+    const max = this.screenCount - 1;
+    if (target > max || target < 0) {
+      if (Math.abs(t - baseScreen) > 0.08) this.onEdge(target > max ? 'end' : 'start');
+      target = clamp(target, 0, max);
+    }
+    const remain = Math.abs(-target * stride - x);
+    const ms = clamp(Math.round((remain / stride) * 320), 140, 320);
+    if (target === this.screen) this._animateTo(-target * stride, ms, () => this._maintain());
+    else this._showScreen(target, ms);
   }
 
   // ---------- 스크롤 모드 ----------
@@ -459,39 +744,81 @@ export class Reader {
   // ---------- 제스처 ----------
   _bindGestures() {
     const v = this.viewport;
-    let sx = 0;
-    let sy = 0;
-    let st = 0;
-    let active = false;
+
     v.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      sx = e.clientX;
-      sy = e.clientY;
-      st = Date.now();
-      active = true;
+      if (this._drag) return; // 두 번째 손가락은 무시
+      this._drag = {
+        id: e.pointerId,
+        sx: e.clientX,
+        sy: e.clientY,
+        st: e.timeStamp,
+        moved: false,
+        vertical: false,
+        baseX: 0,
+        lastX: e.clientX,
+        lastT: e.timeStamp,
+        vx: 0,
+      };
     });
-    v.addEventListener('pointercancel', () => {
-      active = false;
+
+    v.addEventListener('pointermove', (e) => {
+      const d = this._drag;
+      if (!d || e.pointerId !== d.id || d.vertical || this.mode !== 'page' || !this.index) return;
+      const dx = e.clientX - d.sx;
+      const dy = e.clientY - d.sy;
+      if (!d.moved) {
+        if (Math.abs(dx) >= DRAG_START_PX && Math.abs(dx) > Math.abs(dy)) {
+          d.moved = true;
+          d.baseX = this._currentX();
+          this._cancelAnim();
+          this.pages.style.transition = 'none';
+          try {
+            v.setPointerCapture(e.pointerId);
+          } catch {
+            /* 무시 */
+          }
+        } else if (Math.abs(dy) >= DRAG_START_PX) {
+          d.vertical = true;
+          return;
+        } else {
+          return;
+        }
+      }
+      const dt = e.timeStamp - d.lastT;
+      if (dt > 0) d.vx = d.vx * 0.5 + ((e.clientX - d.lastX) / dt) * 0.5;
+      d.lastX = e.clientX;
+      d.lastT = e.timeStamp;
+      this._setX(this._rubber(d.baseX + dx));
     });
-    v.addEventListener('pointerup', (e) => {
-      if (!active) return;
-      active = false;
-      const dx = e.clientX - sx;
-      const dy = e.clientY - sy;
-      const dt = Date.now() - st;
-      if (this.mode === 'page' && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < 0) this.next();
-        else this.prev();
+
+    const release = (e) => {
+      const d = this._drag;
+      if (!d || e.pointerId !== d.id) return;
+      this._drag = null;
+      if (d.moved) {
+        this._endDrag(d, e, false);
         return;
       }
+      if (d.vertical) return;
+      const dx = e.clientX - d.sx;
+      const dy = e.clientY - d.sy;
+      const dt = e.timeStamp - d.st;
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 500) {
-        const w = v.clientWidth;
-        const ratio = e.clientX / w;
+        const ratio = e.clientX / v.clientWidth;
         if (ratio < 0.3) this.prev();
         else if (ratio > 0.7) this.next();
         else this.onTap();
       }
+    };
+    v.addEventListener('pointerup', release);
+    v.addEventListener('pointercancel', (e) => {
+      const d = this._drag;
+      if (!d || e.pointerId !== d.id) return;
+      this._drag = null;
+      if (d.moved) this._endDrag(d, e, true);
     });
+
     window.addEventListener('keydown', (e) => {
       if (!this.index || this.viewport.closest('[hidden]')) return;
       if (e.target.matches('input, textarea, select')) return;
