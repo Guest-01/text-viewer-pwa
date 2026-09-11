@@ -17,6 +17,7 @@ const ASSETS = [
   './icons/icon-512.png',
   './icons/maskable-512.png',
   './fonts/noto-serif-kr-2350-v1.woff2',
+  './fonts/noto-serif-kr-2350-bold-v1.woff2',
   './fonts/pretendard-2350-regular-v1.woff2',
   './fonts/pretendard-2350-bold-v1.woff2',
 ];

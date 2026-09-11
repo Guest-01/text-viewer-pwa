@@ -56,8 +56,7 @@ npm run start:lan
 | `npm run start:lan` | 개발 서버를 LAN에 공개 (0.0.0.0:8080) |
 | `npm run icons` | `icons/` PNG 아이콘 재생성 |
 | `npm run demo` | `demo/` 데모 텍스트 재생성 (UTF-8, EUC-KR) |
-| `npm run font` | `fonts/` 명조 서브셋 woff2 재생성 (아래 참고) |
-| `npm run font:sans` | `fonts/` 고딕(Pretendard) 서브셋 woff2 재생성 (아래 참고) |
+| `npm run font` | `fonts/` 글꼴 서브셋 woff2 4개 재생성 (아래 참고) |
 
 ## 구조
 
@@ -70,33 +69,28 @@ js/text.js            본문 블록/청크 색인, 책 제목·장 제목(목차
 js/encoding.js        인코딩 감지, 디코딩
 js/db.js              IndexedDB (books 메타, contents 원본 버퍼)
 js/ui.js              오버레이 스택(뒤로가기 연동), 토스트, 유틸
-fonts/                본문 명조체 (Noto Serif KR 서브셋 woff2, OFL 라이선스)
+fonts/                동봉 글꼴 (Pretendard·Noto Serif KR 서브셋 woff2, 각 400/700, OFL 라이선스)
 sw.js                 Service Worker (앱 셸 캐시, 폰트 캐시 우선, share_target)
 manifest.webmanifest  PWA 매니페스트
 server.js             개발 서버
-scripts/              아이콘/데모 생성 스크립트
+scripts/              아이콘/데모/글꼴 생성 스크립트
 demo/                 데모 텍스트
 ```
 
 ## 폰트와 아이콘
 
-- UI와 본문 고딕은 [Pretendard](https://github.com/orioncactus/pretendard) Regular/Bold를 같은 범위로 서브셋한 것입니다(각 약 210KB). 라이선스는 SIL OFL 1.1이며 `fonts/LICENSE-Pretendard-OFL.txt`에 있습니다. 재생성은 Node만 있으면 됩니다.
+- 글꼴은 두 벌을 동봉하며 각각 보통(400)과 굵게(700) 두 파일입니다. 모두 SIL OFL 1.1입니다.
+  - 고딕: [Pretendard](https://github.com/orioncactus/pretendard) (각 약 190KB, `fonts/LICENSE-Pretendard-OFL.txt`). UI 전체와 본문 고딕에 씁니다.
+  - 명조: [Noto Serif KR](https://github.com/notofonts/noto-cjk) (각 약 420KB, `fonts/LICENSE-OFL.txt`). 서재 제목, 표지 모노그램, 본문 명조에 씁니다.
+- 네 파일 모두 KS X 1001 완성형 한글 2,350자와 라틴·구두점·CJK 기호만 남기고 힌팅을 뺀 서브셋입니다. 범위 밖 글자(한자, 옛한글, 희귀 음절)는 시스템 폰트로 표시됩니다. Service Worker가 설치 시 미리 받아 캐시 우선으로 제공하므로 오프라인에서도 동작합니다. CSS의 `font-synthesis: none`으로 동봉하지 않은 굵기·기울임을 브라우저가 흉내 내지 않게 합니다.
+- 재생성은 Node만 있으면 됩니다. 한 번 만들어 커밋해 두고, 범위나 글꼴 버전을 바꿀 때만 다시 돌립니다.
 
   ```bash
   npm install            # devDependency subset-font (harfbuzz 기반)
-  npm run font:sans
+  npm run font           # 원본 OTF를 임시 폴더로 내려받아 4개 생성
   ```
 
-- 본문 명조체는 [Noto Serif KR](https://github.com/notofonts/noto-cjk) Regular에서 KS X 1001 완성형 한글 2,350자와 라틴·구두점·CJK 기호만 남긴 서브셋입니다(약 340KB). 범위 밖 글자(한자, 옛한글, 희귀 음절)는 시스템 폰트로 표시됩니다. Service Worker가 설치 시 미리 받아 캐시 우선으로 제공하므로 오프라인에서도 동작합니다. 라이선스는 SIL OFL 1.1이며 `fonts/LICENSE-OFL.txt`에 있습니다.
-- 명조 재생성에는 Python 3과 fonttools가 필요합니다. 시스템에 설치하지 않으려면 가상환경을 쓰세요.
-
-  ```bash
-  python -m venv .fontenv
-  .fontenv/Scripts/pip install fonttools brotli
-  .fontenv/Scripts/python scripts/make-font.py
-  ```
-
-  원본 OTF는 스크립트가 임시 폴더로 내려받습니다. 범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요.
+  범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요. 서비스 워커가 `fonts/`를 불변으로 캐시하므로 같은 이름에 다른 범위를 넣으면 옛 캐시가 남습니다.
 - UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 15개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
 
 ## 저장 구조

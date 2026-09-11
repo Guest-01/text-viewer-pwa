@@ -1,7 +1,8 @@
-/* 동봉 글꼴 (모두 SIL OFL 1.1)
+/* 동봉 글꼴 (모두 SIL OFL 1.1, 각각 보통 400·굵게 700 두 벌)
    - 고딕: Pretendard 서브셋 (fonts/LICENSE-Pretendard-OFL.txt). UI와 본문 고딕에 쓴다.
-   - 명조: Noto Serif KR 서브셋 (fonts/LICENSE-OFL.txt). 본문 명조에 쓴다.
-   완성형 2,350자 범위 밖 글자는 뒤 폰트로 대체된다. */
+   - 명조: Noto Serif KR 서브셋 (fonts/LICENSE-OFL.txt). 서재 제목, 표지, 본문 명조에 쓴다.
+   완성형 2,350자 범위 밖 글자는 뒤 폰트로 대체된다. 굵기는 400과 700만 쓰고, 없는 굵기·기울임은
+   font-synthesis: none 으로 브라우저가 흉내 내지 못하게 막는다. */
 @font-face {
   font-family: "TV Sans";
   src: url("../fonts/pretendard-2350-regular-v1.woff2") format("woff2");
@@ -20,6 +21,13 @@
   font-family: "TV Serif";
   src: url("../fonts/noto-serif-kr-2350-v1.woff2") format("woff2");
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "TV Serif";
+  src: url("../fonts/noto-serif-kr-2350-bold-v1.woff2") format("woff2");
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
@@ -89,6 +97,7 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
 }
 [hidden] { display: none !important; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
@@ -114,7 +123,7 @@ h1, h2 { margin: 0; font-weight: 700; }
   background: var(--bg);
 }
 .app-bar h1 { font-family: var(--font-serif); font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
-.btn-text { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; padding: 6px 10px; border-radius: 10px; }
+.btn-text { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; padding: 6px 10px; border-radius: 10px; }
 .btn-text:active { background: var(--accent-soft); }
 .btn-text svg { width: 20px; height: 20px; }
 .library-body { flex: 1; overflow-y: auto; padding-bottom: 104px; -webkit-overflow-scrolling: touch; }
@@ -138,26 +147,26 @@ h1, h2 { margin: 0; font-weight: 700; }
 }
 .book-main { flex: 1; min-width: 0; }
 .book-more { color: var(--muted); margin-right: -10px; }
-.book-title { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book-title { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .book-meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .book-progress { height: 3px; background: var(--surface-3); border-radius: 2px; margin-top: 9px; overflow: hidden; }
 .book-progress span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--ease-out); }
 .empty { text-align: center; padding: 64px 28px 24px; color: var(--muted); }
 .empty-icon { width: 60px; height: 60px; color: var(--border-strong); margin-bottom: 10px; }
 .empty p { margin: 8px 0; }
-.empty .lead { color: var(--fg); font-size: 17px; font-weight: 600; }
+.empty .lead { color: var(--fg); font-size: 17px; font-weight: 700; }
 .hint { font-size: 14px; line-height: 1.6; }
 .hint.small { font-size: 12px; }
 .demo-buttons { display: flex; flex-direction: column; gap: 8px; margin: 22px auto 10px; max-width: 280px; }
 .btn-secondary {
   padding: 11px 14px; border-radius: 12px;
-  background: var(--surface-2); color: var(--fg); font-weight: 500;
+  background: var(--surface-2); color: var(--fg); font-weight: 400;
 }
 .fab {
   position: fixed; right: 20px; bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   display: inline-flex; align-items: center; gap: 6px;
   padding: 14px 22px 14px 16px; border-radius: 30px;
-  background: var(--accent); color: var(--accent-fg); font-weight: 600;
+  background: var(--accent); color: var(--accent-fg); font-weight: 700;
   box-shadow: 0 8px 20px rgba(180, 83, 42, 0.32), 0 2px 6px rgba(0, 0, 0, 0.14);
   transition: transform 0.12s var(--ease-out), box-shadow 0.2s ease;
 }
@@ -264,7 +273,7 @@ h1, h2 { margin: 0; font-weight: 700; }
 }
 .reader.bars-visible .top-bar, .reader.bars-visible .bottom-bar { transform: none; }
 .title { flex: 1; min-width: 0; padding: 0 4px; }
-.title-main { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title-main { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .title-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .title-sub:empty { display: none; }
 .icon-btn {
@@ -357,7 +366,7 @@ input[type="range"].slider::-moz-range-thumb {
 .stepper span { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; }
 .segmented { display: flex; background: var(--surface-2); border-radius: 12px; padding: 3px; gap: 2px; }
 .segmented button { padding: 7px 13px; border-radius: 9px; font-size: 14px; color: var(--muted); }
-.segmented button.active { background: var(--surface); color: var(--fg); font-weight: 600; box-shadow: var(--shadow-1); }
+.segmented button.active { background: var(--surface); color: var(--fg); font-weight: 700; box-shadow: var(--shadow-1); }
 .segmented button.serif { font-family: var(--font-serif); }
 /* 현재 읽기 방식에서 의미 없는 설정은 흐리게 하고 입력을 막는다 */
 .setting-row.disabled { opacity: 0.4; pointer-events: none; }
@@ -373,7 +382,7 @@ input[type="range"].slider::-moz-range-thumb {
 .switch[aria-checked="true"] { background: var(--accent); }
 .switch[aria-checked="true"]::after { transform: translateX(20px); }
 .sheet-foot { display: flex; justify-content: flex-end; padding: 6px 0 0; }
-.btn-link { color: var(--accent); font-size: 14px; padding: 6px 4px; font-weight: 500; }
+.btn-link { color: var(--accent); font-size: 14px; padding: 6px 4px; font-weight: 400; }
 .menu-item { display: block; width: 100%; text-align: left; padding: 14px 4px; font-size: 16px; border-top: 1px solid var(--border); }
 .menu-item:active { background: var(--surface-2); }
 .menu-item.danger { color: var(--danger); }
@@ -405,7 +414,7 @@ input[type="range"].slider::-moz-range-thumb {
 .row { display: flex; align-items: center; border-bottom: 1px solid var(--border); }
 .row-main { flex: 1; min-width: 0; text-align: left; padding: 12px 20px; }
 .row-main:active, .row-main.active { background: var(--surface-2); }
-.row-main.active { color: var(--accent); font-weight: 600; }
+.row-main.active { color: var(--accent); font-weight: 700; }
 .row-title { font-size: 12.5px; margin-bottom: 3px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .row-sub { font-size: 14.5px; line-height: 1.5; color: var(--fg); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .row-sub mark { background: var(--mark); color: inherit; border-radius: 2px; }
@@ -443,7 +452,7 @@ input[type="range"].slider::-moz-range-thumb {
 .guide[hidden] { display: none; }
 .guide-zone {
   display: flex; align-items: center; justify-content: center; text-align: center;
-  font-size: 15px; font-weight: 600; padding: 8px;
+  font-size: 15px; font-weight: 700; padding: 8px;
 }
 .guide-zone + .guide-zone { border-left: 1px dashed rgba(255, 255, 255, 0.35); }
 .guide-zone span { white-space: nowrap; background: rgba(255, 255, 255, 0.16); border-radius: 12px; padding: 14px 10px; }
@@ -485,7 +494,7 @@ input[type="range"].slider::-moz-range-thumb {
 :root[data-theme="dark"] .toast { background: rgba(240, 238, 232, 0.96); color: #1a1a1c; }
 .toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 .toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 14px; padding-right: 8px; white-space: nowrap; max-width: 92vw; }
-.toast-action { color: #f3b48f; font-weight: 600; padding: 4px 8px; border-radius: 12px; white-space: nowrap; }
+.toast-action { color: #f3b48f; font-weight: 700; padding: 4px 8px; border-radius: 12px; white-space: nowrap; }
 :root[data-theme="dark"] .toast-action { color: #a6431b; }
 .toast-action:active { background: rgba(255, 255, 255, 0.12); }
 
