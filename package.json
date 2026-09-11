@@ -8,6 +8,10 @@
     "start:lan": "node server.js --lan",
     "icons": "node scripts/make-icons.js",
     "demo": "node scripts/make-demo.js",
-    "font": "python scripts/make-font.py"
+    "font": "python scripts/make-font.py",
+    "font:sans": "node scripts/make-sans-font.js"
+  },
+  "devDependencies": {
+    "subset-font": "^2.4.0"
   }
 }

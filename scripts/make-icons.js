@@ -63,10 +63,10 @@ function hex(c) {
   return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
 }
 
-const BG = hex('#2F6FED');
-const PAGE = hex('#FFFFFF');
-const LINE = hex('#334155');
-const RIBBON = hex('#F59E0B');
+const BG = hex('#B4532A'); // 앱 강조색(테라코타)과 같다
+const PAGE = hex('#FBF7F0');
+const LINE = hex('#3B342E');
+const RIBBON = hex('#F2C14E');
 
 // 아이콘 콘텐츠: 페이지 + 텍스트 줄 + 책갈피 리본. scale로 안전 영역을 조절한다.
 function colorAt(u, v, scale, bgRadius) {
