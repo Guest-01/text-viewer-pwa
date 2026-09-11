@@ -195,11 +195,17 @@ function confirmDelete(book) {
   $('#confirm-title').textContent = bookDisplayTitle(book);
   $('#confirm-delete').onclick = async () => {
     closeOverlay();
+    // 뷰어에서 지우는 경우: 서재로 돌아가며 뷰어를 닫을 때 읽던 위치 저장(flushSave)이 실행돼
+    // 방금 지운 책을 되살리므로, 삭제 전에 현재 책과 예약된 저장을 먼저 비운다.
+    const fromReader = state.book && state.book.id === book.id;
+    if (fromReader) {
+      clearTimeout(state.saveTimer);
+      state.book = null;
+    }
     await db.deleteBook(book.id);
     if (localStorage.getItem(LAST_BOOK_KEY) === book.id) localStorage.removeItem(LAST_BOOK_KEY);
     toast('삭제했습니다');
-    // 뷰어에서 지운 경우 서재로 돌아간다
-    if (state.book && state.book.id === book.id) goLibrary();
+    if (fromReader) goLibrary();
     else showLibrary();
   };
   openOverlay('ov-confirm');
