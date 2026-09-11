@@ -1,18 +1,26 @@
 // 앱 진입점: 라우팅, 서재, 뷰어 화면, 설정/검색/책갈피 UI
 import * as db from './db.js';
 import { detectEncoding, decodeText, ENCODINGS, encodingLabel } from './encoding.js';
-import { buildIndex, snippetAt } from './text.js';
+import { buildIndex, snippetAt, tocIndexAt } from './text.js';
 import { Reader } from './reader.js';
-import { toast, openOverlay, closeOverlay, onLongPress, formatBytes, formatDate, escapeHtml, uid, isOverlayOpen } from './ui.js';
+import { toast, openOverlay, closeOverlay, onLongPress, formatBytes, formatDate, formatMinutes, escapeHtml, uid, haptic, hashHue } from './ui.js';
 
 const SETTINGS_KEY = 'tv.settings';
 const LAST_BOOK_KEY = 'tv.lastBook';
 const DEFAULT_SETTINGS = {
-  fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', bold: false, justify: false,
+  fontSize: 18, lineHeight: 1.7, margin: 16, font: 'sans', justify: false,
   theme: 'system', mode: 'page', spread: 'auto', keepAwake: false, leftNext: false, statusBar: true,
 };
+// 타이포그래피 프리셋: 세부 설정을 만지지 않아도 되는 세 가지 조합
+const PRESETS = {
+  comfort: { fontSize: 18, lineHeight: 1.7, margin: 16 },
+  dense: { fontSize: 16, lineHeight: 1.5, margin: 12 },
+  large: { fontSize: 22, lineHeight: 1.8, margin: 16 },
+};
 const GUIDE_KEY = 'tv.guideShown';
-const THEME_COLORS = { light: '#ffffff', dark: '#121212', sepia: '#f4ecd8' };
+const SPEED_KEY = 'tv.readSpeed'; // 분당 글자 수 (지수 이동 평균)
+const DEFAULT_CPM = 600;
+const THEME_COLORS = { light: '#fbfaf7', dark: '#121214' };
 const MARGIN_STEP = 4; // 여백 1단계 = 4px
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const MAX_SEARCH_RESULTS = 300;
@@ -30,18 +38,25 @@ const state = {
   installPrompt: null,
   wakeLock: null,
   search: null, // { results, q, idx } 결과로 이동한 뒤 탐색 바 상태
+  speed: { cpm: loadSpeed(), lastPos: null, lastT: 0 }, // 읽기 속도 학습
 };
 
 // ---------- 설정 ----------
 function loadSettings() {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    const s = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    if (s.theme !== 'system' && !THEME_COLORS[s.theme]) s.theme = 'system'; // 없어진 테마(세피아)가 저장돼 있으면 기기 설정으로
+    return s;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
 }
 function saveSettings() {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+}
+function loadSpeed() {
+  const v = Number(localStorage.getItem(SPEED_KEY));
+  return v >= 100 && v <= 3000 ? v : DEFAULT_CPM;
 }
 // 'system'은 기기 테마(prefers-color-scheme)를 따른다. index.html의 인라인 스크립트와 같은 규칙.
 function resolveTheme() {
@@ -61,12 +76,25 @@ function applyReaderStyle() {
   v.style.setProperty('--line-height', String(s.lineHeight));
   v.style.setProperty('--margin', `${s.margin}px`);
   v.dataset.font = s.font;
-  v.dataset.bold = s.bold ? '1' : '';
   v.dataset.justify = s.justify ? '1' : '';
   v.dataset.status = s.statusBar ? '1' : '';
   $('#status-bar').hidden = !s.statusBar;
   if (state.reader) state.reader.leftNext = s.leftNext;
-  $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤로 보기' : '페이지로 보기';
+  $('#btn-mode span').textContent = s.mode === 'page' ? '스크롤 보기' : '페이지 보기';
+}
+function setSliderValue(input, value) {
+  input.value = value;
+  const min = Number(input.min) || 0;
+  const max = Number(input.max) || 100;
+  input.style.setProperty('--pct', `${(((value - min) / (max - min)) * 100).toFixed(2)}%`);
+}
+function bookDisplayTitle(book) {
+  return book.displayTitle || book.title;
+}
+// 표지 모노그램: 제목의 앞 두 글자 (한글·한자는 그대로, 라틴은 대문자)
+function coverLabel(title) {
+  const t = title.replace(/^[^\p{L}\p{N}]+/u, '');
+  return (t.slice(0, 2) || '?').toUpperCase();
 }
 
 // 화면 꺼짐 방지: 뷰어가 보이고 설정이 켜져 있을 때만 잠금을 잡는다.
@@ -111,10 +139,12 @@ async function showLibrary() {
     li.className = 'book';
     li.dataset.id = b.id;
     const pct = Math.round((b.progress || 0) * 1000) / 10;
+    const title = bookDisplayTitle(b);
+    const hue = hashHue(b.title);
     li.innerHTML = `
-      <div class="book-icon"><svg><use href="#i-file"/></svg></div>
+      <div class="book-cover" style="--c1: hsl(${hue} 42% 40%); --c2: hsl(${(hue + 28) % 360} 48% 26%)"><span>${escapeHtml(coverLabel(title))}</span></div>
       <div class="book-main">
-        <div class="book-title">${escapeHtml(b.title)}</div>
+        <div class="book-title">${escapeHtml(title)}</div>
         <div class="book-meta">${pct}% · ${formatBytes(b.size)} · ${formatDate(b.lastOpenedAt)}</div>
         <div class="book-progress"><span style="width:${pct}%"></span></div>
       </div>
@@ -134,9 +164,10 @@ async function showLibrary() {
 
 // 서재 항목 메뉴 (⋮ 또는 길게 누르기)
 function openItemMenu(book) {
-  $('#item-title').textContent = book.title;
+  $('#item-title').textContent = bookDisplayTitle(book);
   const pct = Math.round((book.progress || 0) * 1000) / 10;
-  $('#item-meta').textContent = `${pct}% 읽음 · ${formatBytes(book.size)} · ${encodingLabel(book.encoding)}`;
+  const file = book.displayTitle && book.displayTitle !== book.title ? `${book.title}.txt · ` : '';
+  $('#item-meta').textContent = `${file}${pct}% 읽음 · ${formatBytes(book.size)} · ${encodingLabel(book.encoding)}`;
   $('#item-restart').onclick = async () => {
     closeOverlay();
     await db.putBook({ ...book, position: 0, progress: 0 });
@@ -151,7 +182,7 @@ function openItemMenu(book) {
 }
 
 function confirmDelete(book) {
-  $('#confirm-title').textContent = book.title;
+  $('#confirm-title').textContent = bookDisplayTitle(book);
   $('#confirm-delete').onclick = async () => {
     closeOverlay();
     await db.deleteBook(book.id);
@@ -194,6 +225,7 @@ async function importBuffer(buffer, name) {
     : {
         id: uid(),
         title,
+        displayTitle: buildIndex(text).title || '',
         size: buffer.byteLength,
         encoding: 'auto',
         detectedEncoding: encoding,
@@ -237,7 +269,9 @@ async function openReader(id) {
   $('#library').hidden = true;
   $('#reader').hidden = false;
   document.body.dataset.screen = 'reader';
-  $('#reader-title').textContent = book.title;
+  $('#reader-title').textContent = bookDisplayTitle(book);
+  $('#reader-chapter').textContent = '';
+  state.speed.lastPos = null;
   setBarsVisible(false);
   applyReaderStyle();
   decodeAndLoad(book.position || 0);
@@ -253,10 +287,18 @@ function decodeAndLoad(position) {
   state.lowerText = null;
   state.book.detectedEncoding = encoding;
   state.book.length = text.length;
+  // 첫 줄에서 찾은 책 제목은 서재와 상단 바에서 파일명 대신 쓴다
+  if (state.index.title && state.index.title !== state.book.displayTitle) {
+    state.book.displayTitle = state.index.title;
+    $('#reader-title').textContent = state.index.title;
+  }
   if (!state.reader) {
     state.reader = new Reader($('#viewport'), {
       onPosition: handlePosition,
-      onEdge: (edge) => toast(edge === 'end' ? '마지막입니다' : '처음입니다', 1000),
+      onEdge: (edge) => {
+        haptic(20);
+        toast(edge === 'end' ? '마지막입니다' : '처음입니다', 1000);
+      },
       onTap: () => setBarsVisible(!$('#reader').classList.contains('bars-visible')),
     });
   }
@@ -298,10 +340,20 @@ function handlePosition(offset) {
   state.book.position = offset;
   state.book.progress = progress;
   const pct = (progress * 100).toFixed(1);
-  $('#progress').value = Math.round(progress * 10000);
+  setSliderValue($('#progress'), Math.round(progress * 10000));
   $('#progress-label').textContent = `${pct}%`;
-  const info = state.settings.statusBar ? state.reader.getPageInfo() : null;
-  $('#status-bar').textContent = info ? `${info.page} / ${info.total} · ${pct}%` : `${pct}%`;
+  trackSpeed(offset);
+  const toc = state.index.toc;
+  const ti = tocIndexAt(state.index, offset);
+  $('#reader-chapter').textContent = ti >= 0 ? toc[ti].text : '';
+  if (state.settings.statusBar) {
+    const parts = [];
+    const info = state.reader.getPageInfo();
+    if (info) parts.push(`${info.page} / ${info.total}`);
+    parts.push(`${pct}%`);
+    parts.push(`${formatMinutes((len - offset) / state.speed.cpm)} 남음`);
+    $('#status-bar').innerHTML = parts.join('<span class="sep">·</span>');
+  }
   updateBookmarkIcon();
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(flushSave, 400);
@@ -310,6 +362,24 @@ function handlePosition(offset) {
 function flushSave() {
   clearTimeout(state.saveTimer);
   if (state.book) db.putBook({ ...state.book }).catch(console.error);
+  localStorage.setItem(SPEED_KEY, String(Math.round(state.speed.cpm)));
+}
+
+// 읽기 속도 학습: 앞으로 한두 화면 분량을 몇 초~몇 분에 걸쳐 읽었을 때만 표본으로 삼는다.
+// 점프·뒤로 넘김·오래 자리를 비운 경우는 제외한다.
+function trackSpeed(offset) {
+  const sp = state.speed;
+  const now = performance.now();
+  if (sp.lastPos != null) {
+    const dc = offset - sp.lastPos;
+    const dt = (now - sp.lastT) / 60000;
+    if (dc > 0 && dc < 4000 && dt > 0.05 && dt < 4) {
+      const cpm = Math.min(3000, Math.max(100, dc / dt));
+      sp.cpm = sp.cpm * 0.8 + cpm * 0.2;
+    }
+  }
+  sp.lastPos = offset;
+  sp.lastT = now;
 }
 
 function setBarsVisible(visible) {
@@ -321,6 +391,7 @@ function setBarsVisible(visible) {
 function jumpTo(offset) {
   if (!state.reader || !state.index) return;
   const from = state.reader.getPosition();
+  state.speed.lastPos = null;
   state.reader.goTo(offset);
   const pct = (o) => `${((Math.min(o, state.index.length) / Math.max(1, state.index.length)) * 100).toFixed(1)}%`;
   toast(`${pct(from)} → ${pct(offset)} 이동`, 5000, { label: '이전 위치로', onClick: () => jumpTo(from) });
@@ -379,6 +450,7 @@ function addBookmarkHere() {
   }
   state.book.bookmarks.push({ offset: pos, snippet: snippetAt(state.index, pos), createdAt: Date.now() });
   state.book.bookmarks.sort((a, b) => a.offset - b.offset);
+  haptic(12);
   toast('책갈피를 추가했습니다');
   updateBookmarkIcon();
   flushSave();
@@ -387,6 +459,7 @@ function addBookmarkHere() {
 function removeBookmark(i) {
   const [removed] = state.book.bookmarks.splice(i, 1);
   const book = state.book;
+  haptic(12);
   updateBookmarkIcon();
   flushSave();
   if (!$('#ov-bookmarks').hidden) renderBookmarks();
@@ -429,6 +502,35 @@ function renderBookmarks() {
     li.querySelector('.row-del').addEventListener('click', () => removeBookmark(i));
     list.appendChild(li);
   });
+}
+
+// ---------- 목차 ----------
+function renderToc() {
+  const list = $('#toc-list');
+  list.innerHTML = '';
+  const toc = state.index ? state.index.toc : [];
+  $('#toc-empty').hidden = toc.length > 0;
+  if (!toc.length) return;
+  const len = Math.max(1, state.index.length);
+  const cur = tocIndexAt(state.index, state.reader.getPosition());
+  const frag = document.createDocumentFragment();
+  toc.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.className = 'row';
+    li.innerHTML = `<button class="row-main toc-row ${i === cur ? 'active' : ''}">
+      <div class="row-sub">${escapeHtml(item.text)}</div>
+      <span class="toc-pct">${((item.offset / len) * 100).toFixed(1)}%</span>
+    </button>`;
+    li.querySelector('button').addEventListener('click', () => {
+      closeOverlay();
+      jumpTo(item.offset);
+      setBarsVisible(false);
+    });
+    frag.appendChild(li);
+  });
+  list.appendChild(frag);
+  const active = list.querySelector('.active');
+  if (active) active.scrollIntoView({ block: 'center' });
 }
 
 // ---------- 검색 ----------
@@ -497,6 +599,16 @@ function refreshSettingsSheet() {
   $('#val-font-size').textContent = s.fontSize;
   $('#val-line-height').textContent = s.lineHeight.toFixed(1);
   $('#val-margin').textContent = Math.round(s.margin / MARGIN_STEP); // px 대신 0~12 단계로 표시
+  let presetActive = false;
+  document.querySelectorAll('[data-preset]').forEach((btn) => {
+    const p = PRESETS[btn.dataset.preset];
+    const active = Object.keys(p).every((k) => s[k] === p[k]);
+    presetActive = presetActive || active;
+    btn.classList.toggle('active', active);
+  });
+  $('#detail-summary').textContent = `크기 ${s.fontSize} · 줄간격 ${s.lineHeight.toFixed(1)} · 여백 ${Math.round(s.margin / MARGIN_STEP)}`;
+  // 프리셋에서 벗어난 값이면 사용자가 손댄 상태를 숨기지 않도록 세부 조정을 펼쳐 둔다
+  if (!presetActive) setDetailOpen(true);
   document.querySelectorAll('[data-set]').forEach((btn) => {
     btn.classList.toggle('active', String(s[btn.dataset.set]) === btn.dataset.value);
   });
@@ -507,8 +619,13 @@ function refreshSettingsSheet() {
   $('#row-spread').classList.toggle('disabled', s.mode !== 'page');
   $('#row-left-next').classList.toggle('disabled', s.mode !== 'page');
 }
+function setDetailOpen(open) {
+  $('#detail-rows').hidden = !open;
+  $('#btn-detail').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
 function bindSettings() {
   const s = state.settings;
+  $('#btn-detail').addEventListener('click', () => setDetailOpen($('#detail-rows').hidden));
   const stepper = (key, delta, min, max, round = (v) => v) => {
     updateSetting(key, round(Math.min(max, Math.max(min, s[key] + delta))));
   };
@@ -520,6 +637,15 @@ function bindSettings() {
   $('#margin-inc').addEventListener('click', () => stepper('margin', MARGIN_STEP, 0, MARGIN_STEP * 12));
   document.querySelectorAll('[data-set]').forEach((btn) => {
     btn.addEventListener('click', () => updateSetting(btn.dataset.set, btn.dataset.value));
+  });
+  document.querySelectorAll('[data-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      Object.assign(s, PRESETS[btn.dataset.preset]);
+      saveSettings();
+      refreshSettingsSheet();
+      applyReaderStyle();
+      if (state.reader) state.reader.relayout();
+    });
   });
   document.querySelectorAll('[data-toggle]').forEach((btn) => {
     btn.addEventListener('click', () => updateSetting(btn.dataset.toggle, !s[btn.dataset.toggle]));
@@ -628,11 +754,6 @@ async function init() {
     jumpTo(0);
     setBarsVisible(false);
   });
-  $('#menu-end').addEventListener('click', () => {
-    closeOverlay();
-    jumpTo(state.index.length - 1);
-    setBarsVisible(false);
-  });
   $('#menu-guide').addEventListener('click', () => {
     closeOverlay();
     setBarsVisible(false);
@@ -648,6 +769,7 @@ async function init() {
   // 뷰어 하단 바
   const progress = $('#progress');
   progress.addEventListener('input', () => {
+    setSliderValue(progress, Number(progress.value));
     $('#progress-label').textContent = `${(progress.value / 100).toFixed(1)}%`;
   });
   progress.addEventListener('change', () => {
@@ -659,6 +781,10 @@ async function init() {
   $('#sn-next').addEventListener('click', () => gotoSearchResult(state.search ? state.search.idx + 1 : 0));
   $('#sn-close').addEventListener('click', closeSearchNav);
   $('#sn-label').addEventListener('click', () => openOverlay('ov-search'));
+  $('#btn-toc').addEventListener('click', () => {
+    renderToc();
+    openOverlay('ov-toc');
+  });
   $('#btn-bookmarks').addEventListener('click', () => {
     renderBookmarks();
     openOverlay('ov-bookmarks');
@@ -673,7 +799,13 @@ async function init() {
     updateSetting('mode', mode);
     toast(mode === 'page' ? '페이지 모드' : '스크롤 모드', 900);
   });
-  $('#btn-settings').addEventListener('click', () => openOverlay('ov-settings'));
+  // 설정은 본문을 보면서 바꿀 수 있게 바를 내리고 연다
+  $('#btn-settings').addEventListener('click', () => {
+    setBarsVisible(false);
+    setDetailOpen(false);
+    refreshSettingsSheet(); // 프리셋에서 벗어난 값이면 여기서 세부 조정이 다시 펼쳐진다
+    openOverlay('ov-settings');
+  });
 
   // 검색
   $('#search-form').addEventListener('submit', (e) => {

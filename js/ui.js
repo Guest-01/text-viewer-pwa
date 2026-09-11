@@ -137,6 +137,32 @@ export function formatDate(ts) {
   return y === now.getFullYear() ? `${m}.${day}` : `${y}.${m}.${day}`;
 }
 
+/** 남은 시간 표기: 분 → "1분 미만", "8분", "2시간 10분" */
+export function formatMinutes(min) {
+  if (!Number.isFinite(min) || min < 1) return '1분 미만';
+  const m = Math.round(min);
+  if (m < 60) return m + '분';
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? h + '시간 ' + r + '분' : h + '시간';
+}
+
+/** 짧은 진동 피드백. 지원하지 않는 환경(iOS, 데스크톱)에서는 조용히 넘어간다. */
+export function haptic(pattern = 10) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  } catch {
+    /* 무시 */
+  }
+}
+
+/** 문자열에서 안정적인 색상(0~359)을 뽑는다. 서재 표지 색에 쓴다. */
+export function hashHue(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return ((h % 360) + 360) % 360;
+}
+
 export function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }

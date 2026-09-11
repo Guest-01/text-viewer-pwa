@@ -4,11 +4,16 @@
 
 ## 기능
 
-- 서재: 열었던 파일 목록, 진행률, 마지막 읽던 책 자동 이어읽기, 길게 눌러 삭제
+- 서재: 열었던 파일 목록(제목 색으로 만든 표지), 진행률, 마지막 읽던 책 자동 이어읽기, 길게 눌러 삭제
+  - 첫 줄이 짧은 제목이면 파일명 대신 그 제목을 보여줍니다
 - 뷰어: 페이지 모드(탭, 손가락을 따라오는 드래그/플릭 넘김)와 스크롤 모드, 진행률 슬라이더
+  - 책 제목과 장 제목("제1장", "12화", "Chapter 1", "프롤로그" 등)을 자동으로 찾아 크게 표시하고, 원본의 앞 공백 대신 일정한 들여쓰기를 줍니다
+- 목차: 찾은 장 제목 목록으로 바로 이동, 상단 바에 현재 장 표시
+- 남은 시간: 실제 넘김 속도를 학습해 "2시간 10분 남음"을 쪽수 옆에 표시 (`localStorage`의 `tv.readSpeed`)
 - 2쪽 보기: 자동(너비 600px 이상: 폴더블 펼침, 태블릿, 가로 모드) / 1쪽 / 2쪽
-- 설정: 글자 크기, 줄간격, 여백, 글꼴(고딕/명조), 테마(밝게/어둡게/세피아)
-  - 고딕은 기기 시스템 폰트, 명조는 동봉한 Noto Serif KR 서브셋(완성형 2,350자)을 오프라인에서도 사용
+- 설정: 프리셋(편안하게/촘촘하게/큰 글씨)과 접어 둔 세부 조정(글자 크기, 줄간격, 여백), 글꼴(고딕/명조), 양쪽 정렬, 테마(밝게/어둡게), 화면 꺼짐 방지, 2쪽 보기, 쪽수와 남은 시간, 한 손 읽기
+  - 본문/화면/읽기 세 섹션으로 나뉘며, 시트는 본문을 가리지 않는 높이로 열려 바뀌는 모습을 바로 볼 수 있습니다
+  - 고딕은 동봉한 Pretendard 서브셋, 명조는 동봉한 Noto Serif KR 서브셋(모두 완성형 2,350자)을 오프라인에서도 사용
 - 책갈피, 본문 검색(결과 강조)
 - 인코딩 자동 감지(UTF-8, EUC-KR, UTF-16) 및 수동 변경
 - PWA: 홈 화면 설치, 오프라인 동작, 파일 관리자 "공유"로 txt 받기(Web Share Target)
@@ -52,6 +57,7 @@ npm run start:lan
 | `npm run icons` | `icons/` PNG 아이콘 재생성 |
 | `npm run demo` | `demo/` 데모 텍스트 재생성 (UTF-8, EUC-KR) |
 | `npm run font` | `fonts/` 명조 서브셋 woff2 재생성 (아래 참고) |
+| `npm run font:sans` | `fonts/` 고딕(Pretendard) 서브셋 woff2 재생성 (아래 참고) |
 
 ## 구조
 
@@ -60,7 +66,7 @@ index.html            앱 셸 (서재, 뷰어, 시트/패널 마크업)
 css/style.css         스타일, 테마
 js/app.js             라우팅, 서재, 뷰어 UI, 설정/검색/책갈피
 js/reader.js          뷰어 엔진 (페이지 모드: CSS 다단 + 가로 이동, 앞뒤 청크 연속 렌더, 2쪽 보기, 드래그 넘김 / 스크롤 모드: 청크 윈도우)
-js/text.js            본문 블록/청크 색인
+js/text.js            본문 블록/청크 색인, 책 제목·장 제목(목차) 감지, 들여쓰기 공백 분리
 js/encoding.js        인코딩 감지, 디코딩
 js/db.js              IndexedDB (books 메타, contents 원본 버퍼)
 js/ui.js              오버레이 스택(뒤로가기 연동), 토스트, 유틸
@@ -74,8 +80,15 @@ demo/                 데모 텍스트
 
 ## 폰트와 아이콘
 
-- 본문 명조체는 [Noto Serif KR](https://github.com/notofonts/noto-cjk) Regular에서 KS X 1001 완성형 한글 2,350자와 라틴·구두점·CJK 기호만 남긴 서브셋입니다(약 400KB). 범위 밖 글자(한자, 옛한글, 희귀 음절)는 시스템 폰트로 표시됩니다. Service Worker가 설치 시 미리 받아 캐시 우선으로 제공하므로 오프라인에서도 동작합니다. 라이선스는 SIL OFL 1.1이며 `fonts/LICENSE-OFL.txt`에 있습니다.
-- 재생성하려면 Python 3과 fonttools가 필요합니다. 시스템에 설치하지 않으려면 가상환경을 쓰세요.
+- UI와 본문 고딕은 [Pretendard](https://github.com/orioncactus/pretendard) Regular/Bold를 같은 범위로 서브셋한 것입니다(각 약 210KB). 라이선스는 SIL OFL 1.1이며 `fonts/LICENSE-Pretendard-OFL.txt`에 있습니다. 재생성은 Node만 있으면 됩니다.
+
+  ```bash
+  npm install            # devDependency subset-font (harfbuzz 기반)
+  npm run font:sans
+  ```
+
+- 본문 명조체는 [Noto Serif KR](https://github.com/notofonts/noto-cjk) Regular에서 KS X 1001 완성형 한글 2,350자와 라틴·구두점·CJK 기호만 남긴 서브셋입니다(약 340KB). 범위 밖 글자(한자, 옛한글, 희귀 음절)는 시스템 폰트로 표시됩니다. Service Worker가 설치 시 미리 받아 캐시 우선으로 제공하므로 오프라인에서도 동작합니다. 라이선스는 SIL OFL 1.1이며 `fonts/LICENSE-OFL.txt`에 있습니다.
+- 명조 재생성에는 Python 3과 fonttools가 필요합니다. 시스템에 설치하지 않으려면 가상환경을 쓰세요.
 
   ```bash
   python -m venv .fontenv
@@ -84,7 +97,7 @@ demo/                 데모 텍스트
   ```
 
   원본 OTF는 스크립트가 임시 폴더로 내려받습니다. 범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요.
-- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 13개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
+- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 15개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
 
 ## 저장 구조
 

@@ -17,7 +17,7 @@
   </script>
   <title>텍스트 뷰어</title>
   <meta name="description" content="모바일용 txt 텍스트 뷰어 PWA">
-  <meta name="theme-color" id="theme-color" content="#ffffff">
+  <meta name="theme-color" id="theme-color" content="#fbfaf7">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -42,6 +42,8 @@
     <symbol id="i-add" viewBox="0 -960 960 960"><path d="M440-440H240q-17 0-28.5-11.5T200-480q0-17 11.5-28.5T240-520h200v-200q0-17 11.5-28.5T480-760q17 0 28.5 11.5T520-720v200h200q17 0 28.5 11.5T760-480q0 17-11.5 28.5T720-440H520v200q0 17-11.5 28.5T480-200q-17 0-28.5-11.5T440-240v-200Z"/></symbol>
     <symbol id="i-file" viewBox="0 -960 960 960"><path d="M360-240h240q17 0 28.5-11.5T640-280q0-17-11.5-28.5T600-320H360q-17 0-28.5 11.5T320-280q0 17 11.5 28.5T360-240Zm0-160h240q17 0 28.5-11.5T640-440q0-17-11.5-28.5T600-480H360q-17 0-28.5 11.5T320-440q0 17 11.5 28.5T360-400ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h287q16 0 30.5 6t25.5 17l194 194q11 11 17 25.5t6 30.5v447q0 33-23.5 56.5T720-80H240Zm280-560v-160H240v640h480v-440H560q-17 0-28.5-11.5T520-640ZM240-800v200-200 640-640Z"/></symbol>
     <symbol id="i-swap" viewBox="0 -960 960 960"><path d="M360-440q-17 0-28.5-11.5T320-480v-247l-75 75q-11 11-27.5 11T189-652q-12-12-12-28.5t12-28.5l143-143q6-6 13-8.5t15-2.5q8 0 15 2.5t13 8.5l144 144q12 12 11.5 28T531-652q-12 11-28 11.5T475-652l-75-75v247q0 17-11.5 28.5T360-440ZM600-97q-8 0-15-2.5t-13-8.5L428-252q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l75 75v-247q0-17 11.5-28.5T600-520q17 0 28.5 11.5T640-480v247l75-75q11-11 27.5-11t28.5 11q12 12 12 28.5T771-251L628-108q-6 6-13 8.5T600-97Z"/></symbol>
+    <symbol id="i-toc" viewBox="0 -960 960 960"><path d="M160-240q-17 0-28.5-11.5T120-280q0-17 11.5-28.5T160-320h40q17 0 28.5 11.5T240-280q0 17-11.5 28.5T200-240h-40Zm0-200q-17 0-28.5-11.5T120-480q0-17 11.5-28.5T160-520h40q17 0 28.5 11.5T240-480q0 17-11.5 28.5T200-440h-40Zm0-200q-17 0-28.5-11.5T120-680q0-17 11.5-28.5T160-720h40q17 0 28.5 11.5T240-680q0 17-11.5 28.5T200-640h-40Zm200 400q-17 0-28.5-11.5T320-280q0-17 11.5-28.5T360-320h440q17 0 28.5 11.5T840-280q0 17-11.5 28.5T800-240H360Zm0-200q-17 0-28.5-11.5T320-480q0-17 11.5-28.5T360-520h440q17 0 28.5 11.5T840-480q0 17-11.5 28.5T800-440H360Zm0-200q-17 0-28.5-11.5T320-680q0-17 11.5-28.5T360-720h440q17 0 28.5 11.5T840-680q0 17-11.5 28.5T800-640H360Z"/></symbol>
+    <symbol id="i-expand" viewBox="0 -960 960 960"><path d="M480-345q-8 0-15-2.5t-13-8.5L228-580q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L508-356q-6 6-13 8.5t-15 2.5Z"/></symbol>
     <symbol id="i-download" viewBox="0 -960 960 960"><path d="M480-337q-8 0-15-2.5t-13-8.5L308-492q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T365-549l75 75v-286q0-17 11.5-28.5T480-800q17 0 28.5 11.5T520-760v286l75-75q12-12 28.5-11.5T652-548q11 12 11.5 28T652-492L508-348q-6 6-13 8.5t-15 2.5ZM240-160q-33 0-56.5-23.5T160-240v-80q0-17 11.5-28.5T200-360q17 0 28.5 11.5T240-320v80h480v-80q0-17 11.5-28.5T760-360q17 0 28.5 11.5T800-320v80q0 33-23.5 56.5T720-160H240Z"/></symbol>
   </svg>
 
@@ -56,7 +58,7 @@
         <ul id="book-list" class="book-list"></ul>
         <div id="library-empty" class="empty" hidden>
           <svg class="empty-icon"><use href="#i-file"/></svg>
-          <p>아직 열어본 파일이 없습니다.</p>
+          <p class="lead">아직 열어본 파일이 없습니다</p>
           <p class="hint">아래 <b>파일 열기</b> 버튼으로 txt 파일을 열거나, 앱을 설치한 뒤 파일 관리자에서 txt 파일을 <b>공유</b>해 이 앱으로 보내세요.</p>
           <div class="demo-buttons">
             <button class="btn-secondary" data-demo="./demo/sample-utf8.txt">데모 열기 (UTF-8)</button>
@@ -76,19 +78,20 @@
       <div class="status-bar" id="status-bar" hidden></div>
       <header class="bar top-bar">
         <button class="icon-btn" id="btn-back" aria-label="서재로"><svg><use href="#i-back"/></svg></button>
-        <div class="title" id="reader-title"></div>
+        <div class="title"><div class="title-main" id="reader-title"></div><div class="title-sub" id="reader-chapter"></div></div>
         <button class="icon-btn" id="btn-bookmark" aria-label="책갈피 추가"><svg><use href="#i-bookmark"/></svg></button>
         <button class="icon-btn" id="btn-search" aria-label="검색"><svg><use href="#i-search"/></svg></button>
         <button class="icon-btn" id="btn-more" aria-label="더보기"><svg><use href="#i-more"/></svg></button>
       </header>
       <footer class="bar bottom-bar">
         <div class="progress-row">
-          <input type="range" id="progress" min="0" max="10000" value="0" aria-label="진행률">
+          <input type="range" id="progress" class="slider" min="0" max="10000" value="0" aria-label="진행률">
           <span id="progress-label" class="progress-label">0.0%</span>
         </div>
         <div class="actions-row">
+          <button class="action-btn" id="btn-toc"><svg><use href="#i-toc"/></svg><span>목차</span></button>
           <button class="action-btn" id="btn-bookmarks"><svg><use href="#i-list"/></svg><span>책갈피</span></button>
-          <button class="action-btn" id="btn-mode"><svg><use href="#i-swap"/></svg><span>스크롤로 보기</span></button>
+          <button class="action-btn" id="btn-mode"><svg><use href="#i-swap"/></svg><span>스크롤 보기</span></button>
           <button class="action-btn" id="btn-settings"><svg><use href="#i-tune"/></svg><span>설정</span></button>
         </div>
       </footer>
@@ -108,10 +111,16 @@
       </div>
     </section>
 
-    <!-- 설정 시트 -->
-    <div class="overlay" id="ov-settings" hidden>
-      <div class="sheet">
+    <!-- 설정 시트: 본문이 보이도록 어둡게 덮지 않고(preview) 절반 높이로 연다 -->
+    <div class="overlay preview" id="ov-settings" hidden>
+      <div class="sheet settings">
         <div class="sheet-handle"></div>
+        <div class="sheet-section">본문</div>
+        <div class="preset-row">
+          <button class="preset" data-preset="comfort"><b>가</b>편안하게</button>
+          <button class="preset" data-preset="dense"><b>가</b>촘촘하게</button>
+          <button class="preset" data-preset="large"><b>가</b>큰 글씨</button>
+        </div>
         <div class="setting-row">
           <span class="setting-label">글꼴</span>
           <div class="segmented">
@@ -119,42 +128,45 @@
             <button data-set="font" data-value="serif" class="serif">명조</button>
           </div>
         </div>
-        <div class="setting-row">
-          <span class="setting-label">글자 크기</span>
-          <div class="stepper"><button id="font-size-dec" aria-label="글자 크기 줄이기">−</button><span id="val-font-size">18</span><button id="font-size-inc" aria-label="글자 크기 키우기">+</button></div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">줄간격</span>
-          <div class="stepper"><button id="line-height-dec" aria-label="줄간격 줄이기">−</button><span id="val-line-height">1.7</span><button id="line-height-inc" aria-label="줄간격 늘리기">+</button></div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">여백</span>
-          <div class="stepper"><button id="margin-dec" aria-label="여백 줄이기">−</button><span id="val-margin">4</span><button id="margin-inc" aria-label="여백 늘리기">+</button></div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">굵게</span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="bold" aria-label="굵게"></button>
+        <!-- 세부 조정: 프리셋이 주된 조작이고, 스테퍼는 접어 둔다. 현재 값이 어느 프리셋과도 다르면 펼친 채로 연다. -->
+        <button class="setting-row detail-toggle" id="btn-detail" aria-expanded="false" aria-controls="detail-rows">
+          <span class="setting-label">세부 조정<small id="detail-summary"></small></span>
+          <svg class="chevron"><use href="#i-expand"/></svg>
+        </button>
+        <div id="detail-rows" class="detail-rows" hidden>
+          <div class="setting-row">
+            <span class="setting-label">글자 크기</span>
+            <div class="stepper"><button id="font-size-dec" aria-label="글자 크기 줄이기">−</button><span id="val-font-size">18</span><button id="font-size-inc" aria-label="글자 크기 키우기">+</button></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">줄간격</span>
+            <div class="stepper"><button id="line-height-dec" aria-label="줄간격 줄이기">−</button><span id="val-line-height">1.7</span><button id="line-height-inc" aria-label="줄간격 늘리기">+</button></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">여백</span>
+            <div class="stepper"><button id="margin-dec" aria-label="여백 줄이기">−</button><span id="val-margin">4</span><button id="margin-inc" aria-label="여백 늘리기">+</button></div>
+          </div>
         </div>
         <div class="setting-row">
           <span class="setting-label">양쪽 정렬</span>
           <button class="switch" role="switch" aria-checked="false" data-toggle="justify" aria-label="양쪽 정렬"></button>
         </div>
+
+        <div class="sheet-section">화면</div>
         <div class="setting-row">
           <span class="setting-label">테마</span>
           <div class="segmented">
             <button data-set="theme" data-value="system">기기</button>
             <button data-set="theme" data-value="light">밝게</button>
             <button data-set="theme" data-value="dark">어둡게</button>
-            <button data-set="theme" data-value="sepia">세피아</button>
           </div>
         </div>
         <div class="setting-row">
-          <span class="setting-label">읽기 방식</span>
-          <div class="segmented">
-            <button data-set="mode" data-value="page">페이지</button>
-            <button data-set="mode" data-value="scroll">스크롤</button>
-          </div>
+          <span class="setting-label">화면 꺼짐 방지</span>
+          <button class="switch" role="switch" aria-checked="false" data-toggle="keepAwake" aria-label="화면 꺼짐 방지"></button>
         </div>
+
+        <div class="sheet-section">읽기</div>
         <div class="setting-row" id="row-spread">
           <span class="setting-label">2쪽 보기</span>
           <div class="segmented">
@@ -164,16 +176,12 @@
           </div>
         </div>
         <div class="setting-row">
-          <span class="setting-label">쪽수 표시<small>화면 아래에 쪽수와 진행률</small></span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="statusBar" aria-label="쪽수 표시"></button>
+          <span class="setting-label">쪽수와 남은 시간<small>화면 아래에 쪽수, 진행률, 남은 시간</small></span>
+          <button class="switch" role="switch" aria-checked="false" data-toggle="statusBar" aria-label="쪽수와 남은 시간 표시"></button>
         </div>
         <div class="setting-row" id="row-left-next">
           <span class="setting-label">한 손 읽기<small>왼쪽을 눌러도 다음 페이지</small></span>
           <button class="switch" role="switch" aria-checked="false" data-toggle="leftNext" aria-label="한 손 읽기"></button>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">화면 꺼짐 방지</span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="keepAwake" aria-label="화면 꺼짐 방지"></button>
         </div>
         <div class="sheet-foot">
           <button class="btn-link" id="btn-reset-settings">기본값으로</button>
@@ -191,6 +199,18 @@
         </form>
         <div class="panel-status" id="search-status"></div>
         <ul class="row-list" id="search-results"></ul>
+      </div>
+    </div>
+
+    <!-- 목차 패널: 색인에서 찾은 장 제목 목록 -->
+    <div class="overlay" id="ov-toc" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <button type="button" class="icon-btn" data-close aria-label="닫기"><svg><use href="#i-back"/></svg></button>
+          <h2>목차</h2>
+        </div>
+        <div class="panel-status" id="toc-empty" hidden>장 제목을 찾지 못했습니다. "제1장", "12화", "Chapter 1", "프롤로그"처럼 시작하는 줄을 장 제목으로 인식합니다.</div>
+        <ul class="row-list" id="toc-list"></ul>
       </div>
     </div>
 
@@ -217,7 +237,6 @@
         </div>
         <button class="menu-item" id="menu-encoding">인코딩 변경</button>
         <button class="menu-item" id="menu-start">맨 처음으로</button>
-        <button class="menu-item" id="menu-end">맨 끝으로</button>
         <button class="menu-item" id="menu-guide">탭 영역 안내</button>
         <button class="menu-item danger" id="menu-delete">이 파일 삭제</button>
       </div>

@@ -2,7 +2,7 @@
 //  - 페이지 모드: CSS 다단 레이아웃 + 가로 이동. 현재 청크 앞뒤를 같은 컨테이너에 이어 붙여
 //    청크 경계 없이 넘기고, 1쪽/2쪽 보기와 손가락을 따라오는 드래그 넘김을 지원한다.
 //  - 스크롤 모드: 청크 윈도우
-import { findBlock, chunkOfBlock, chunkRange, blockText } from './text.js';
+import { findBlock, chunkOfBlock, chunkRange, blockText, KIND_HEADING, KIND_TITLE } from './text.js';
 
 const GAP = 40; // 컬럼(페이지) 사이 간격 px. 2쪽 보기에서는 가운데 여백이 된다.
 const MAX_SCROLL_CHUNKS = 5;
@@ -233,7 +233,7 @@ export class Reader {
         this._renderScrollWindow(Math.max(0, c - 1), Math.min(last, c + 1));
       }
       const p = this._blockEl(b);
-      const rect = this._rectAt(p, offset - this.index.starts[b]);
+      const rect = this._rectAt(p, offset - this._blockStart(b));
       const sRect = this._scroller.getBoundingClientRect();
       this._scroller.scrollTop += rect.top - sRect.top - this._padTop;
       this.position = offset;
@@ -250,8 +250,12 @@ export class Reader {
     const p = this._blockEl(b);
     if (!p || !p.firstChild || p.firstChild.nodeType !== 3) return;
     const t = p.firstChild;
-    const k = offset - this.index.starts[b];
-    if (k < 0 || k >= t.length) return;
+    let k = offset - this._blockStart(b);
+    if (k < 0) {
+      length += k; // 들여쓰기 공백에서 시작하는 검색어는 보이는 글자부터 강조한다
+      k = 0;
+    }
+    if (length <= 0 || k >= t.length) return;
     const range = document.createRange();
     range.setStart(t, k);
     range.setEnd(t, Math.min(t.length, k + length));
@@ -326,16 +330,23 @@ export class Reader {
     this._lastSize = `${this.viewport.clientWidth}x${this.viewport.clientHeight}`;
   }
 
+  /** 블록 b의 첫 글자 오프셋 (들여쓰기 공백은 렌더링에서 빠지므로 그만큼 뒤) */
+  _blockStart(b) {
+    return this.index.starts[b] + this.index.skips[b];
+  }
+
   _makeBlock(b) {
     const p = el('p');
     const text = blockText(this.index, b);
     p.dataset.block = b;
-    p.dataset.start = this.index.starts[b];
-    p.dataset.end = this.index.ends[b];
+    p.dataset.start = this._blockStart(b);
     if (text.length === 0) {
       p.className = 'blank';
     } else {
-      if (this.index.conts[b]) p.className = 'cont';
+      const kind = this.index.kinds[b];
+      if (kind === KIND_TITLE) p.className = 't';
+      else if (kind === KIND_HEADING) p.className = 'h';
+      else if (this.index.conts[b]) p.className = 'cont';
       p.textContent = text;
     }
     return p;
@@ -545,7 +556,7 @@ export class Reader {
     const b = findBlock(this.index, offset);
     const p = this._blockEl(b);
     if (!p) return 0;
-    const rect = this._rectAt(p, offset - this.index.starts[b]);
+    const rect = this._rectAt(p, offset - this._blockStart(b));
     const base = this.pages.getBoundingClientRect().left;
     return clamp(Math.floor(this._colOf(rect.left, base) / this.cols), 0, this.screenCount - 1);
   }
