@@ -33,7 +33,6 @@ const state = {
   index: null,
   reader: null,
   saveTimer: null,
-  enteredFromLibrary: false,
   lowerText: null,
   installPrompt: null,
   wakeLock: null,
@@ -118,10 +117,25 @@ async function syncWakeLock() {
 }
 
 // ---------- 라우팅 ----------
+// 서재 ↔ 뷰어는 해시(#read/id)로 표현한다.
+//  - 사용자가 눌러서 들어가는 이동은 history 항목을 쌓아 안드로이드 뒤로가기로 서재에 돌아올 수 있게 한다.
+//  - 자동 이어읽기·공유처럼 사용자 조작 없이 일어나는 이동은 항목을 바꿔치기(replace)한다.
+//    Chrome은 사용자 조작 없이 쌓인 항목을 뒤로가기에서 건너뛰므로, 그런 항목을 되감으면 앱 밖으로 나가 버린다.
+//  - 상단 뒤로가기 버튼도 같은 이유로 history.back()을 쓰지 않고 현재 항목을 서재로 바꿔치기한다.
 function route() {
   const m = location.hash.match(/^#read\/(.+)$/);
   if (m) openReader(decodeURIComponent(m[1]));
   else showLibrary();
+}
+function goBook(id, { replace = false } = {}) {
+  const url = `${location.pathname}#read/${encodeURIComponent(id)}`;
+  if (replace) history.replaceState(null, '', url);
+  else history.pushState(null, '', url);
+  route();
+}
+function goLibrary() {
+  history.replaceState(null, '', location.pathname);
+  route();
 }
 
 // ---------- 서재 ----------
@@ -149,10 +163,7 @@ async function showLibrary() {
         <div class="book-progress"><span style="width:${pct}%"></span></div>
       </div>
       <button class="icon-btn book-more" aria-label="파일 메뉴"><svg><use href="#i-more"/></svg></button>`;
-    li.addEventListener('click', () => {
-      state.enteredFromLibrary = true;
-      location.hash = `read/${encodeURIComponent(b.id)}`;
-    });
+    li.addEventListener('click', () => goBook(b.id));
     li.querySelector('.book-more').addEventListener('click', (e) => {
       e.stopPropagation();
       openItemMenu(b);
@@ -171,8 +182,7 @@ function openItemMenu(book) {
   $('#item-restart').onclick = async () => {
     closeOverlay();
     await db.putBook({ ...book, position: 0, progress: 0 });
-    state.enteredFromLibrary = true;
-    location.hash = `read/${encodeURIComponent(book.id)}`;
+    goBook(book.id);
   };
   $('#item-delete').onclick = () => {
     closeOverlay();
@@ -189,7 +199,7 @@ function confirmDelete(book) {
     if (localStorage.getItem(LAST_BOOK_KEY) === book.id) localStorage.removeItem(LAST_BOOK_KEY);
     toast('삭제했습니다');
     // 뷰어에서 지운 경우 서재로 돌아간다
-    if (state.book && state.book.id === book.id) location.hash = '';
+    if (state.book && state.book.id === book.id) goLibrary();
     else showLibrary();
   };
   openOverlay('ov-confirm');
@@ -207,8 +217,7 @@ async function importFiles(files) {
     }
   }
   if (added.length === 1) {
-    state.enteredFromLibrary = true;
-    location.hash = `read/${encodeURIComponent(added[0].id)}`;
+    goBook(added[0].id);
   } else if (added.length > 1) {
     toast(`${added.length}개 파일을 추가했습니다`);
     showLibrary();
@@ -247,8 +256,7 @@ async function importDemo(url) {
     const buffer = await res.arrayBuffer();
     const name = decodeURIComponent(url.split('/').pop());
     const book = await importBuffer(buffer, name);
-    state.enteredFromLibrary = true;
-    location.hash = `read/${encodeURIComponent(book.id)}`;
+    goBook(book.id);
   } catch (err) {
     console.error(err);
     toast('데모 파일을 불러오지 못했습니다 (온라인 필요)');
@@ -261,7 +269,7 @@ async function openReader(id) {
   const buffer = book ? await db.getContent(id) : null;
   if (!book || !buffer) {
     toast('파일을 찾을 수 없습니다');
-    location.hash = '';
+    goLibrary();
     return;
   }
   state.book = book;
@@ -423,11 +431,6 @@ function closeSearchNav() {
   if (state.reader) state.reader.clearHighlight();
 }
 
-function goLibrary() {
-  if (state.enteredFromLibrary && history.length > 1) history.back();
-  else location.hash = '';
-  state.enteredFromLibrary = false;
-}
 
 // ---------- 책갈피 ----------
 // "현재 화면 안에 있는 책갈피"를 기준으로 판단한다. 오프셋이 정확히 같아야만 인식하면
@@ -704,8 +707,7 @@ async function importSharedFiles() {
       await cache.delete(req);
     }
     if (last && keys.length === 1) {
-      state.enteredFromLibrary = true;
-      location.hash = `read/${encodeURIComponent(last.id)}`;
+      goBook(last.id, { replace: true });
       return true;
     }
     toast(`${keys.length}개 파일을 추가했습니다`);
@@ -860,8 +862,7 @@ async function init() {
   if (!location.hash) {
     const lastId = localStorage.getItem(LAST_BOOK_KEY);
     if (lastId && (await db.getBook(lastId))) {
-      state.enteredFromLibrary = true;
-      location.hash = `read/${encodeURIComponent(lastId)}`;
+      goBook(lastId, { replace: true });
       return;
     }
   }
