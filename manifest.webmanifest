@@ -25,7 +25,7 @@
       "text": "text",
       "url": "url",
       "files": [
-        { "name": "file", "accept": ["text/plain", ".txt"] }
+        { "name": "file", "accept": ["text/plain", "text/markdown", ".txt", ".text", ".md", ".log"] }
       ]
     }
   },

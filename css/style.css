@@ -151,6 +151,7 @@ h1, h2 { margin: 0; font-weight: 700; }
 .book-meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .book-progress { height: 3px; background: var(--surface-3); border-radius: 2px; margin-top: 9px; overflow: hidden; }
 .book-progress span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--ease-out); }
+.storage-note { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; padding: 14px 28px 0; font-variant-numeric: tabular-nums; }
 .empty { text-align: center; padding: 64px 28px 24px; color: var(--muted); }
 .empty-icon { width: 60px; height: 60px; color: var(--border-strong); margin-bottom: 10px; }
 .empty p { margin: 8px 0; }
@@ -386,6 +387,13 @@ input[type="range"].slider::-moz-range-thumb {
 .menu-item { display: block; width: 100%; text-align: left; padding: 14px 4px; font-size: 16px; border-top: 1px solid var(--border); }
 .menu-item:active { background: var(--surface-2); }
 .menu-item.danger { color: var(--danger); }
+.menu-item.accent { color: var(--accent); font-weight: 700; }
+.text-input {
+  display: block; width: 100%; font: inherit; font-size: 16px;
+  padding: 11px 14px; margin: 4px 0 8px; border-radius: 12px; border: 0;
+  background: var(--surface-2); color: var(--fg); outline: none;
+}
+.text-input:focus { box-shadow: 0 0 0 2px var(--accent); }
 .info-box { padding: 4px 4px 12px; font-size: 14px; line-height: 1.7; }
 .info-box .muted { display: inline-block; min-width: 56px; }
 

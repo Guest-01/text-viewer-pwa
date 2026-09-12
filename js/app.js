@@ -24,6 +24,10 @@ const THEME_COLORS = { light: '#fbfaf7', dark: '#121214' };
 const MARGIN_STEP = 4; // 여백 1단계 = 4px
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const MAX_SEARCH_RESULTS = 300;
+// 큰 파일: 원본, 디코딩 문자열, 검색 사본이 모두 메모리에 올라가므로 한 번 묻고, 너무 크면 거절한다.
+const BIG_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
+const TEXT_EXT = /\.(txt|text|md|log)$/i;
 
 const $ = (sel) => document.querySelector(sel);
 const state = {
@@ -138,6 +142,90 @@ function goLibrary() {
   route();
 }
 
+// ---------- 저장 공간 ----------
+// 책 원본은 브라우저 저장소(IndexedDB)에만 있다. 기본적으로 기기 공간이 부족하면 브라우저가 지울 수 있으므로
+// 첫 책을 넣을 때 영구 저장을 요청하고, 서재 아래에 사용량과 보호 여부를 한 줄로 보여 준다.
+const STORAGE_FULL_MSG = '저장 공간이 부족합니다. 기기 저장 공간을 비우거나 안 읽는 책을 지워 주세요';
+
+function isStorageFull(err) {
+  return err && (err.name === 'QuotaExceededError' || err.name === 'StorageFullError');
+}
+
+async function ensurePersisted() {
+  const sm = navigator.storage;
+  if (!sm || !sm.persist) return false;
+  try {
+    return (await sm.persisted()) || (await sm.persist());
+  } catch {
+    return false;
+  }
+}
+
+/** 남은 저장 공간(바이트). 알 수 없으면 null. */
+async function storageFree() {
+  const sm = navigator.storage;
+  if (!sm || !sm.estimate) return null;
+  try {
+    const { quota, usage } = await sm.estimate();
+    return Number.isFinite(quota) && Number.isFinite(usage) ? Math.max(0, quota - usage) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function renderStorageNote(books) {
+  const el = $('#library-storage');
+  el.hidden = books.length === 0;
+  if (el.hidden) return;
+  const total = books.reduce((sum, b) => sum + (b.size || 0), 0);
+  const parts = [`${books.length}권`, formatBytes(total)];
+  const sm = navigator.storage;
+  if (sm && sm.persisted) {
+    const persisted = await sm.persisted().catch(() => false);
+    parts.push(persisted ? '기기에 보호되어 저장됨' : '브라우저 데이터를 지우면 함께 사라집니다');
+  }
+  el.textContent = parts.join(' · ');
+}
+
+// ---------- 확인 시트 ----------
+/** 제목·설명·버튼 두 개짜리 확인 시트. 확인이면 true, 취소나 바깥 탭이면 false. */
+function ask({ title, message, ok = '확인', cancel = '취소' }) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (v) => {
+      if (settled) return;
+      settled = true;
+      resolve(v);
+    };
+    $('#ask-title').textContent = title;
+    $('#ask-message').textContent = message;
+    $('#ask-ok').textContent = ok;
+    $('#ask-cancel').textContent = cancel;
+    $('#ask-ok').onclick = () => { finish(true); closeOverlay(); };
+    $('#ask-cancel').onclick = () => { finish(false); closeOverlay(); };
+    openOverlay('ov-ask', () => finish(false));
+  }).then(
+    // 시트를 닫는 history.back()이 끝난 뒤에 다음 이동(pushState)을 하도록 잠깐 기다린다.
+    (v) => new Promise((resolve) => setTimeout(() => resolve(v), 80)),
+  );
+}
+
+/** 파일 크기 문턱: 너무 크면 안내 후 false, 크면 한 번 묻고, 아니면 true. */
+async function checkFileSize(bytes, name) {
+  if (bytes > MAX_FILE_BYTES) {
+    toast(`${name}: ${formatBytes(bytes)}는 너무 커서 열 수 없습니다 (최대 ${formatBytes(MAX_FILE_BYTES)})`, 5000);
+    return false;
+  }
+  if (bytes > BIG_FILE_BYTES) {
+    return ask({
+      title: name,
+      message: `${formatBytes(bytes)}의 큰 파일입니다. 여는 데 시간이 걸리고 검색이 느릴 수 있으며, 기기에 따라 메모리가 부족할 수 있습니다.`,
+      ok: '그래도 열기',
+    });
+  }
+  return true;
+}
+
 // ---------- 서재 ----------
 async function showLibrary() {
   closeReaderScreen();
@@ -148,6 +236,7 @@ async function showLibrary() {
   const list = $('#book-list');
   list.innerHTML = '';
   $('#library-empty').hidden = books.length > 0;
+  renderStorageNote(books);
   for (const b of books) {
     const li = document.createElement('li');
     li.className = 'book';
@@ -179,6 +268,10 @@ function openItemMenu(book) {
   const pct = Math.round((book.progress || 0) * 1000) / 10;
   const file = book.displayTitle && book.displayTitle !== book.title ? `${book.title}.txt · ` : '';
   $('#item-meta').textContent = `${file}${pct}% 읽음 · ${formatBytes(book.size)} · ${encodingLabel(book.encoding)}`;
+  $('#item-rename').onclick = () => {
+    closeOverlay();
+    setTimeout(() => openRename(book), 30);
+  };
   $('#item-restart').onclick = async () => {
     closeOverlay();
     await db.putBook({ ...book, position: 0, progress: 0 });
@@ -189,6 +282,30 @@ function openItemMenu(book) {
     setTimeout(() => confirmDelete(book), 30);
   };
   openOverlay('ov-item');
+}
+
+// 제목 바꾸기: 사용자가 정한 제목은 customTitle로 표시해 첫 줄에서 찾은 제목이 덮어쓰지 않게 한다.
+// 비워서 저장하면 다시 자동(첫 줄 제목, 없으면 파일 이름)으로 돌아간다.
+function openRename(book) {
+  const input = $('#rename-input');
+  input.value = bookDisplayTitle(book);
+  $('#rename-hint').textContent = `파일 이름: ${book.title}. 비우면 첫 줄에서 찾은 제목이나 파일 이름을 씁니다.`;
+  $('#rename-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const value = input.value.trim();
+    closeOverlay();
+    const next = value
+      ? { ...book, displayTitle: value, customTitle: true }
+      : { ...book, displayTitle: '', customTitle: false };
+    await db.putBook(next);
+    if (state.book && state.book.id === book.id) {
+      Object.assign(state.book, { displayTitle: next.displayTitle, customTitle: next.customTitle });
+      $('#reader-title').textContent = bookDisplayTitle(state.book);
+    }
+    showLibrary();
+  };
+  openOverlay('ov-rename');
+  setTimeout(() => { input.focus(); input.select(); }, 60);
 }
 
 function confirmDelete(book) {
@@ -215,10 +332,15 @@ async function importFiles(files) {
   const added = [];
   for (const file of files) {
     try {
+      if (!(await checkFileSize(file.size, file.name))) continue;
       const buffer = await file.arrayBuffer();
       added.push(await importBuffer(buffer, file.name));
     } catch (err) {
       console.error(err);
+      if (isStorageFull(err)) {
+        toast(STORAGE_FULL_MSG, 5000);
+        break;
+      }
       toast(`열기 실패: ${file.name}`);
     }
   }
@@ -233,8 +355,23 @@ async function importFiles(files) {
 async function importBuffer(buffer, name) {
   const encoding = detectEncoding(buffer);
   const { text } = decodeText(buffer, encoding);
-  const title = (name || '제목 없음').replace(/\.txt$/i, '');
-  const existing = (await db.listBooks()).find((b) => b.title === title && b.size === buffer.byteLength);
+  const title = (name || '제목 없음').replace(TEXT_EXT, '');
+  const books = await db.listBooks();
+  let existing = books.find((b) => b.title === title && b.size === buffer.byteLength);
+  let replaced = false;
+  if (!existing) {
+    // 같은 이름에 내용만 다른 파일(연재물 갱신 등)은 새 책으로 늘리지 않고 원본만 바꿀지 묻는다.
+    const same = books.find((b) => b.title === title);
+    if (same && (await ask({
+      title: bookDisplayTitle(same),
+      message: `같은 이름의 책이 서재에 있습니다 (${formatBytes(same.size)} → ${formatBytes(buffer.byteLength)}). 새 파일로 바꾸면 읽던 위치와 책갈피는 유지됩니다.`,
+      ok: '새 파일로 바꾸기',
+      cancel: '따로 추가',
+    }))) {
+      existing = same;
+      replaced = true;
+    }
+  }
   const book = existing
     ? { ...existing, lastOpenedAt: Date.now() }
     : {
@@ -251,7 +388,28 @@ async function importBuffer(buffer, name) {
         addedAt: Date.now(),
         lastOpenedAt: Date.now(),
       };
+  if (replaced) {
+    // 원본 교체: 크기·길이·감지 인코딩은 새 파일 기준으로, 위치와 책갈피는 새 길이 안으로 맞춘다.
+    book.size = buffer.byteLength;
+    book.detectedEncoding = encoding;
+    book.length = text.length;
+    book.position = Math.min(book.position || 0, Math.max(0, text.length - 1));
+    book.progress = text.length ? book.position / text.length : 0;
+    book.bookmarks = (book.bookmarks || []).filter((bm) => bm.offset < text.length);
+    if (!book.customTitle) book.displayTitle = buildIndex(text).title || '';
+  }
+  if (!existing || replaced) {
+    // 저장 전에 남은 공간을 확인한다. IndexedDB는 원본보다 조금 더 차지하므로 여유를 둔다.
+    const free = await storageFree();
+    if (free !== null && free < buffer.byteLength * 1.5) {
+      const err = new Error(STORAGE_FULL_MSG);
+      err.name = 'StorageFullError';
+      throw err;
+    }
+  }
   await db.saveBook(book, buffer);
+  if (!existing) ensurePersisted();
+  if (replaced) toast('새 파일로 바꿨습니다');
   return book;
 }
 
@@ -265,7 +423,7 @@ async function importDemo(url) {
     goBook(book.id);
   } catch (err) {
     console.error(err);
-    toast('데모 파일을 불러오지 못했습니다 (온라인 필요)');
+    toast(isStorageFull(err) ? STORAGE_FULL_MSG : '데모 파일을 불러오지 못했습니다 (온라인 필요)', 5000);
   }
 }
 
@@ -301,8 +459,8 @@ function decodeAndLoad(position) {
   state.lowerText = null;
   state.book.detectedEncoding = encoding;
   state.book.length = text.length;
-  // 첫 줄에서 찾은 책 제목은 서재와 상단 바에서 파일명 대신 쓴다
-  if (state.index.title && state.index.title !== state.book.displayTitle) {
+  // 첫 줄에서 찾은 책 제목은 서재와 상단 바에서 파일명 대신 쓴다 (사용자가 직접 정한 제목은 건드리지 않는다)
+  if (!state.book.customTitle && state.index.title && state.index.title !== state.book.displayTitle) {
     state.book.displayTitle = state.index.title;
     $('#reader-title').textContent = state.index.title;
   }
@@ -689,8 +847,15 @@ function renderEncodingSheet() {
       closeOverlay();
       if (state.book.encoding === enc.id) return;
       const ratio = state.book.progress || 0;
+      const oldLen = Math.max(1, state.index.length);
       state.book.encoding = enc.id;
       decodeAndLoad(Math.floor(ratio * state.index.length));
+      // 인코딩이 바뀌면 글자 수가 달라지므로 책갈피도 읽던 위치처럼 비율로 옮기고 미리보기를 다시 뽑는다.
+      const newLen = state.index.length;
+      for (const bm of state.book.bookmarks || []) {
+        bm.offset = Math.min(Math.max(0, newLen - 1), Math.round((bm.offset / oldLen) * newLen));
+        bm.snippet = snippetAt(state.index, bm.offset);
+      }
       flushSave();
       toast(`인코딩: ${encodingLabel(state.book.detectedEncoding)}`);
     });
@@ -706,19 +871,26 @@ async function importSharedFiles() {
     const keys = await cache.keys();
     if (!keys.length) return false;
     let last = null;
+    let added = 0;
     for (const req of keys) {
       const res = await cache.match(req);
       const name = decodeURIComponent(res.headers.get('X-File-Name') || '공유된 텍스트.txt');
-      last = await importBuffer(await res.arrayBuffer(), name);
+      const buffer = await res.arrayBuffer();
+      if (await checkFileSize(buffer.byteLength, name)) {
+        last = await importBuffer(buffer, name);
+        added++;
+      }
       await cache.delete(req);
     }
-    if (last && keys.length === 1) {
+    if (added === 1) {
       goBook(last.id, { replace: true });
       return true;
     }
-    toast(`${keys.length}개 파일을 추가했습니다`);
+    if (added > 1) toast(`${added}개 파일을 추가했습니다`);
   } catch (err) {
     console.error(err);
+    // 공간 부족이면 공유 캐시에 파일이 남아 있어 다음 실행에 다시 시도한다.
+    if (isStorageFull(err)) toast(STORAGE_FULL_MSG, 5000);
   }
   return false;
 }
@@ -727,6 +899,16 @@ async function importSharedFiles() {
 async function init() {
   applyTheme();
   applyReaderStyle();
+  // 저장소(IndexedDB)를 못 열면(일부 브라우저의 시크릿 모드, 저장소 차단 등) 아무것도 할 수 없으니 이유를 보여주고 멈춘다.
+  try {
+    await db.listBooks();
+  } catch (err) {
+    console.error('IndexedDB 사용 불가', err);
+    $('#library-empty').hidden = true;
+    $('#library-fatal').hidden = false;
+    $('#btn-open').hidden = true;
+    return;
+  }
   bindSettings();
   darkQuery.addEventListener('change', () => { if (state.settings.theme === 'system') applyTheme(); });
 
@@ -825,7 +1007,11 @@ async function init() {
   // 저장 보장
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushSave();
-    else syncWakeLock();
+    else {
+      syncWakeLock();
+      // 설치 앱과 브라우저 탭처럼 두 창이 같은 서재를 쓸 수 있으므로 돌아올 때 목록을 다시 읽는다.
+      if (document.body.dataset.screen === 'library') showLibrary();
+    }
   });
   window.addEventListener('pagehide', flushSave);
 
@@ -875,7 +1061,7 @@ async function init() {
   route();
 }
 
-init();
+init().catch((err) => console.error('초기화 실패', err));
 
 // 디버그/테스트용 노출
 window.__tv = { state, db };

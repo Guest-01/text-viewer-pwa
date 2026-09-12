@@ -56,6 +56,7 @@
       </header>
       <main class="library-body">
         <ul id="book-list" class="book-list"></ul>
+        <p id="library-storage" class="storage-note" hidden></p>
         <div id="library-empty" class="empty" hidden>
           <svg class="empty-icon"><use href="#i-file"/></svg>
           <p class="lead">아직 열어본 파일이 없습니다</p>
@@ -66,9 +67,14 @@
           </div>
           <p class="hint small">항목 오른쪽의 ⋮ 버튼이나 길게 누르기로 삭제할 수 있습니다.</p>
         </div>
+        <div id="library-fatal" class="empty" hidden>
+          <svg class="empty-icon"><use href="#i-file"/></svg>
+          <p class="lead">저장 공간을 열 수 없습니다</p>
+          <p class="hint">이 브라우저에서는 파일을 저장할 수 없어 앱을 쓸 수 없습니다. 시크릿 모드라면 일반 창에서 열어 주세요.</p>
+        </div>
       </main>
       <button id="btn-open" class="fab"><svg><use href="#i-add"/></svg>파일 열기</button>
-      <input type="file" id="file-input" accept=".txt,text/plain" multiple hidden>
+      <input type="file" id="file-input" accept=".txt,.text,.md,.log,text/plain,text/*" multiple hidden>
     </section>
 
     <!-- 뷰어 -->
@@ -257,8 +263,32 @@
         <div class="sheet-handle"></div>
         <h2 class="sheet-title" id="item-title"></h2>
         <p class="hint" id="item-meta"></p>
+        <button class="menu-item" id="item-rename">제목 바꾸기</button>
         <button class="menu-item" id="item-restart">처음부터 읽기</button>
         <button class="menu-item danger" id="item-delete">삭제</button>
+      </div>
+    </div>
+
+    <!-- 제목 바꾸기 -->
+    <div class="overlay" id="ov-rename" hidden>
+      <form class="sheet menu" id="rename-form">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title">제목 바꾸기</h2>
+        <input type="text" id="rename-input" class="text-input" autocomplete="off" enterkeyhint="done" maxlength="120">
+        <p class="hint small" id="rename-hint"></p>
+        <button type="submit" class="menu-item accent" id="rename-save">저장</button>
+        <button type="button" class="menu-item" data-close>취소</button>
+      </form>
+    </div>
+
+    <!-- 범용 확인 (큰 파일 열기, 같은 제목 교체) -->
+    <div class="overlay" id="ov-ask" hidden>
+      <div class="sheet menu">
+        <div class="sheet-handle"></div>
+        <h2 class="sheet-title" id="ask-title"></h2>
+        <p class="hint" id="ask-message"></p>
+        <button class="menu-item accent" id="ask-ok"></button>
+        <button class="menu-item" id="ask-cancel"></button>
       </div>
     </div>
 
