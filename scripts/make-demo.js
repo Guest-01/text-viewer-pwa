@@ -37,7 +37,7 @@ function buildStory() {
   const lines = [];
   lines.push(TITLE);
   lines.push('');
-  lines.push('※ 이 글은 텍스트 뷰어 PWA 테스트용으로 작성된 짧은 창작 소설입니다.');
+  lines.push('※ 이 글은 펼침 테스트용으로 작성된 짧은 창작 소설입니다.');
   lines.push('※ 문단이 반복되지만, 장(章) 번호와 제목으로 위치를 구분할 수 있습니다.');
   lines.push('');
   lines.push('');

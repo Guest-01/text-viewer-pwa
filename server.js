@@ -72,7 +72,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n텍스트 뷰어 개발 서버 실행 중 (${HOST}:${PORT})\n`);
+  console.log(`\n펼침(text-viewer-pwa) 개발 서버 실행 중 (${HOST}:${PORT})\n`);
   console.log(`  로컬:   http://localhost:${PORT}/`);
   if (EXPOSED) {
     const ifaces = os.networkInterfaces();

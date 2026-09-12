@@ -122,7 +122,8 @@ h1, h2 { margin: 0; font-weight: 700; }
   padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 12px;
   background: var(--bg);
 }
-.app-bar h1 { font-family: var(--font-serif); font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.app-bar h1 { display: flex; align-items: center; gap: 9px; font-family: var(--font-serif); font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.app-bar .logo { width: 28px; height: 28px; flex: none; border-radius: 7px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
 .btn-text { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; padding: 6px 10px; border-radius: 10px; }
 .btn-text:active { background: var(--accent-soft); }
 .btn-text svg { width: 20px; height: 20px; }

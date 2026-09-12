@@ -68,31 +68,51 @@ const PAGE = hex('#FBF7F0');
 const LINE = hex('#3B342E');
 const RIBBON = hex('#F2C14E');
 
-// 아이콘 콘텐츠: 페이지 + 텍스트 줄 + 책갈피 리본. scale로 안전 영역을 조절한다.
+// 아이콘 콘텐츠: 펼친 책(마주 보는 두 쪽) + 텍스트 줄 + 오른쪽에 책갈피 리본. scale로 안전 영역을 조절한다.
+// 두 쪽은 책등(가운데 틈)에서 멀어질수록 바깥 가장자리가 살짝 올라가게 y를 기울여 펼친 느낌을 낸다.
+// index.html의 #i-logo(SVG)도 같은 그림이므로 여기를 바꾸면 그쪽 skewY(±7)도 함께 맞춘다.
+const SPINE = 0.5;
+const GAP = 0.016; // 책등 틈의 절반
+const PAGE_W = 0.355;
+const PAGE_Y = 0.255;
+const PAGE_H = 0.49;
+const SLOPE = 0.12; // 바깥쪽 가장자리가 올라가는 정도 (tan 7°)
+const LINE_INSET = 0.065;
+const LINE_H = 0.045;
+const LINE_YS = [0.37, 0.475, 0.58]; // 각 쪽의 텍스트 줄 y (기울이기 전)
+
+// 한 쪽의 도형. side = -1(왼쪽) / 1(오른쪽). 좌표는 이미 기울인 값이다.
+function pageColor(cu, cv, side, ribbon) {
+  const inner = SPINE + side * GAP; // 책등 쪽 가장자리
+  const x0 = side < 0 ? inner - PAGE_W : inner;
+  const cy = cv + (side < 0 ? inner - cu : cu - inner) * SLOPE; // 바깥으로 갈수록 도형이 위로 올라간다
+  // 리본: 오른쪽 위, 위 가장자리에서 늘어짐
+  if (ribbon) {
+    const rx = x0 + PAGE_W - 0.11;
+    if (cu >= rx && cu <= rx + 0.075 && cy >= PAGE_Y - 0.03 && cy <= PAGE_Y + 0.2) {
+      const tip = PAGE_Y + 0.15;
+      const notch = cy > tip && Math.abs(cu - (rx + 0.0375)) < (cy - tip) * 0.9;
+      if (!notch) return RIBBON;
+    }
+  }
+  // 텍스트 줄 (마지막 줄은 짧게)
+  for (let i = 0; i < LINE_YS.length; i++) {
+    const w = PAGE_W - LINE_INSET * 2 - (i === LINE_YS.length - 1 ? 0.09 : 0);
+    const lx = x0 + LINE_INSET;
+    if (roundedRect(cu, cy, lx, LINE_YS[i], w, LINE_H, LINE_H / 2)) return LINE;
+  }
+  if (roundedRect(cu, cy, x0, PAGE_Y, PAGE_W, PAGE_H, 0.045)) return PAGE;
+  return null;
+}
+
 function colorAt(u, v, scale, bgRadius) {
   // 배경 (둥근 사각형, maskable은 꽉 찬 사각형)
   if (!roundedRect(u, v, 0, 0, 1, 1, bgRadius)) return null;
   // 콘텐츠 좌표 변환
   const cu = (u - 0.5) / scale + 0.5;
   const cv = (v - 0.5) / scale + 0.5;
-  // 리본
-  if (cu >= 0.6 && cu <= 0.7 && cv >= 0.16 && cv <= 0.42) {
-    const notch = cv > 0.36 && Math.abs(cu - 0.65) < (cv - 0.36) * 0.9;
-    if (!notch) return RIBBON;
-  }
-  // 텍스트 줄
-  const lines = [
-    [0.32, 0.34, 0.68],
-    [0.32, 0.46, 0.68],
-    [0.32, 0.58, 0.68],
-    [0.32, 0.70, 0.54],
-  ];
-  for (const [x1, y, x2] of lines) {
-    if (roundedRect(cu, cv, x1, y, x2 - x1, 0.05, 0.025)) return LINE;
-  }
-  // 페이지
-  if (roundedRect(cu, cv, 0.24, 0.18, 0.52, 0.66, 0.04)) return PAGE;
-  return BG;
+  const c = cu < SPINE ? pageColor(cu, cv, -1, false) : pageColor(cu, cv, 1, true);
+  return c || BG;
 }
 
 function render(size, { scale, bgRadius, filename }) {

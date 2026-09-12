@@ -1,7 +1,7 @@
 {
-  "name": "텍스트 뷰어",
-  "short_name": "텍스트 뷰어",
-  "description": "모바일용 txt 텍스트 뷰어. 오프라인에서 동작하며 읽던 위치를 기억합니다.",
+  "name": "펼침",
+  "short_name": "펼침",
+  "description": "폴더블과 태블릿에서 두 쪽으로 펼쳐 읽는 txt 뷰어. 오프라인에서 동작하며 읽던 위치를 기억합니다.",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",

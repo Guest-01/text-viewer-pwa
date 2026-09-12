@@ -2,7 +2,7 @@
   "name": "text-viewer-pwa",
   "version": "0.1.0",
   "private": true,
-  "description": "모바일용 텍스트(txt) 뷰어 PWA",
+  "description": "펼침 · 두 쪽으로 펼쳐 읽는 모바일 txt 뷰어 PWA (코드네임 text-viewer-pwa)",
   "scripts": {
     "start": "node server.js",
     "start:lan": "node server.js --lan",

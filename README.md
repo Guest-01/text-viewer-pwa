@@ -1,6 +1,8 @@
-# 텍스트 뷰어 PWA
+# 펼침 (text-viewer-pwa)
 
-모바일(안드로이드, 삼성 인터넷 기준)용 txt 텍스트 뷰어입니다. 프레임워크와 빌드 도구 없이 순수 HTML/CSS/JS로 작성되어 정적 파일만으로 배포할 수 있습니다.
+**펼침**은 모바일(안드로이드, 삼성 인터넷 기준)용 txt 텍스트 뷰어입니다. 폴더블과 태블릿에서는 책처럼 두 쪽으로 펼쳐 읽습니다. 프레임워크와 빌드 도구 없이 순수 HTML/CSS/JS로 작성되어 정적 파일만으로 배포할 수 있습니다.
+
+"펼침"은 화면에 보이는 이름이고, 저장소·패키지·저장소 키(`tv.*`, `text-viewer`)는 코드네임 `text-viewer-pwa`를 그대로 씁니다. 이름을 바꿀 때는 `manifest.webmanifest`, `index.html`의 title·meta·h1, 이 문서만 고치면 됩니다.
 
 ## 기능
 
@@ -94,6 +96,8 @@ demo/                 데모 텍스트
   ```
 
   범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요. 서비스 워커가 `fonts/`를 불변으로 캐시하므로 같은 이름에 다른 범위를 넣으면 옛 캐시가 남습니다.
+- 앱 아이콘(`icons/`)은 펼친 책 두 쪽과 책갈피 리본을 `scripts/make-icons.js`가 도형으로 그린 것입니다. 배경은 강조색과 같은 테라코타입니다.
+- 서재 상단의 로고는 같은 그림을 SVG 심볼(`#i-logo`)로 옮긴 것입니다.
 - UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 18개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
 
 ## 저장 구조
