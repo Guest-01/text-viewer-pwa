@@ -38,7 +38,7 @@ npm start
 npm run start:lan
 ```
 
-콘솔에 LAN 주소(예: `http://172.30.1.32:8080/`)가 함께 출력됩니다. Windows 방화벽이 8080 포트의 인바운드 연결을 허용해야 합니다. `HOST=0.0.0.0` 또는 `LAN=1` 환경변수로도 같은 동작을 켤 수 있고, `PORT` 로 포트를 바꿀 수 있습니다.
+콘솔에 LAN 주소(예: `http://192.168.0.10:8080/`)가 함께 출력됩니다. Windows 방화벽이 8080 포트의 인바운드 연결을 허용해야 합니다. `HOST=0.0.0.0` 또는 `LAN=1` 환경변수로도 같은 동작을 켤 수 있고, `PORT` 로 포트를 바꿀 수 있습니다.
 
 ## LAN(HTTP) 테스트 시 제한
 
@@ -50,7 +50,7 @@ npm run start:lan
 
 이 기능까지 실제 기기에서 확인하려면 다음 중 하나를 사용하세요.
 
-1. 브라우저 플래그: Chrome은 `chrome://flags/#unsafely-treat-insecure-origin-as-secure` 에 `http://172.30.1.32:8080` 을 등록하면 HTTP에서도 보안 컨텍스트로 취급합니다. 삼성 인터넷은 `internet://flags` 에서 같은 플래그를 찾을 수 있습니다.
+1. 브라우저 플래그: Chrome은 `chrome://flags/#unsafely-treat-insecure-origin-as-secure` 에 콘솔에 출력된 LAN 주소(예: `http://192.168.0.10:8080`)를 등록하면 HTTP에서도 보안 컨텍스트로 취급합니다. 삼성 인터넷은 `internet://flags` 에서 같은 플래그를 찾을 수 있습니다.
 2. HTTPS 터널: `npx cloudflared tunnel --url http://localhost:8080` 또는 `npx localtunnel --port 8080` 으로 임시 HTTPS 주소를 만듭니다.
 3. 정적 호스팅: GitHub Pages, Cloudflare Pages 등에 폴더를 그대로 올립니다. 상대 경로만 사용하므로 하위 경로 배포도 됩니다.
 
