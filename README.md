@@ -62,7 +62,7 @@ npm run start:lan
 | `npm start` | 개발 서버 (localhost 전용, 127.0.0.1:8080) |
 | `npm run start:lan` | 개발 서버를 LAN에 공개 (0.0.0.0:8080) |
 | `npm run icons` | `icons/` PNG 아이콘 재생성 |
-| `npm run demo` | `demo/` 데모 텍스트 재생성 (UTF-8, EUC-KR) |
+| `npm run demo` | `demo/sample.txt` 데모 텍스트 재생성 |
 | `npm run font` | `fonts/` 글꼴 서브셋 woff2 4개 재생성 (아래 참고) |
 
 ## 구조
@@ -81,7 +81,7 @@ sw.js                 Service Worker (앱 셸 캐시, 폰트 캐시 우선, shar
 manifest.webmanifest  PWA 매니페스트
 server.js             개발 서버
 scripts/              아이콘/데모/글꼴 생성 스크립트
-demo/                 데모 텍스트
+demo/                 데모 텍스트 (기능을 겪어 보는 짧은 안내서, 빈 서재의 "데모로 둘러보기")
 LICENSE               앱 코드의 MIT 라이선스 (글꼴·아이콘 라이선스는 아래 참고)
 ```
 
