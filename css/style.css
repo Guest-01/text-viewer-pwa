@@ -143,6 +143,17 @@ h1, h2 { margin: 0; font-weight: 700; }
 .about-list .muted { font-size: 12.5px; flex: none; }
 .btn-text svg { width: 20px; height: 20px; }
 .library-body { flex: 1; overflow-y: auto; padding-bottom: 104px; -webkit-overflow-scrolling: touch; }
+/* 설치 안내 카드 */
+.install-card {
+  display: flex; gap: 14px; align-items: flex-start;
+  margin: 4px 20px 12px; padding: 14px 16px 8px;
+  border-radius: 16px; background: var(--surface); border: 1px solid var(--border);
+}
+.install-logo { width: 40px; height: 40px; flex: none; border-radius: 10px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); margin-top: 1px; }
+.install-text { flex: 1; min-width: 0; }
+.install-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.install-body { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--muted); word-break: keep-all; }
+.install-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: 6px -8px 0 0; }
 .book-list { list-style: none; margin: 0; padding: 4px 0 8px; }
 .book {
   display: flex; gap: 14px; align-items: center;

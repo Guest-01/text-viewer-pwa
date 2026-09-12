@@ -18,6 +18,7 @@ const PRESETS = {
   large: { fontSize: 22, lineHeight: 1.8, margin: 16 },
 };
 const GUIDE_KEY = 'tv.guideShown';
+const INSTALL_DISMISSED_KEY = 'tv.installDismissed'; // 설치 안내 카드에서 "나중에"를 눌렀음
 const APP_VERSION = '0.1.0'; // package.json의 version과 함께 올린다
 const SPEED_KEY = 'tv.readSpeed'; // 분당 글자 수 (지수 이동 평균)
 const DEFAULT_CPM = 600;
@@ -1017,18 +1018,37 @@ async function init() {
   });
   window.addEventListener('pagehide', flushSave);
 
-  // 설치 버튼
+  // 설치 안내: 브라우저가 설치 가능 신호를 준 뒤에만 상단 버튼과 카드를 보인다.
+  // 설치된 앱(standalone)으로 열었거나 카드에서 "나중에"를 눌렀으면 카드는 숨기고 버튼만 남긴다.
+  const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const updateInstallUi = () => {
+    const can = !!state.installPrompt && !isStandalone();
+    $('#btn-install').hidden = !can;
+    $('#install-card').hidden = !can || !!localStorage.getItem(INSTALL_DISMISSED_KEY);
+  };
+  const promptInstall = async () => {
+    const p = state.installPrompt;
+    if (!p) return;
+    state.installPrompt = null; // prompt()는 한 번만 부를 수 있다
+    updateInstallUi();
+    p.prompt();
+    await p.userChoice;
+  };
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     state.installPrompt = e;
-    $('#btn-install').hidden = false;
+    updateInstallUi();
   });
-  $('#btn-install').addEventListener('click', async () => {
-    if (!state.installPrompt) return;
-    state.installPrompt.prompt();
-    await state.installPrompt.userChoice;
+  window.addEventListener('appinstalled', () => {
     state.installPrompt = null;
-    $('#btn-install').hidden = true;
+    updateInstallUi();
+    toast('설치했습니다. 홈 화면에서 열어 주세요', 3000);
+  });
+  $('#btn-install').addEventListener('click', promptInstall);
+  $('#install-now').addEventListener('click', promptInstall);
+  $('#install-later').addEventListener('click', () => {
+    localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
+    $('#install-card').hidden = true;
   });
 
   // 정보 시트: 상단 로고와 서재 맨 아래 줄 두 곳에서 연다

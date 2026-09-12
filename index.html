@@ -60,12 +60,24 @@
         <button id="btn-install" class="btn-text" hidden><svg><use href="#i-download"/></svg>설치</button>
       </header>
       <main class="library-body">
+        <!-- 설치 안내: 설치 가능하고(beforeinstallprompt) 아직 설치하지 않았을 때만 -->
+        <div id="install-card" class="install-card" hidden>
+          <svg class="install-logo" aria-hidden="true"><use href="#i-logo"/></svg>
+          <div class="install-text">
+            <p class="install-title">앱으로 설치하면 화면 전체로 읽습니다</p>
+            <p class="install-body">주소창과 브라우저 메뉴 없이 책만 남고, 파일 관리자에서 공유로 바로 보내며, 오프라인에서도 열립니다.</p>
+            <div class="install-actions">
+              <button type="button" class="btn-link" id="install-later">나중에</button>
+              <button type="button" class="btn-text" id="install-now"><svg><use href="#i-download"/></svg>설치</button>
+            </div>
+          </div>
+        </div>
         <ul id="book-list" class="book-list"></ul>
         <p id="library-storage" class="storage-note" hidden></p>
         <div id="library-empty" class="empty" hidden>
           <svg class="empty-icon"><use href="#i-book"/></svg>
           <p class="lead">아직 열어본 파일이 없습니다</p>
-          <p class="hint">아래 <b>파일 열기</b> 버튼으로 txt 파일을 열거나, 앱을 설치한 뒤 파일 관리자에서 txt 파일을 <b>공유</b>해 이 앱으로 보내세요.</p>
+          <p class="hint">아래 <b>파일 열기</b> 버튼으로 txt 파일을 열어 보세요. 설치한 앱에서는 파일 관리자의 <b>공유</b>로도 보낼 수 있습니다.</p>
           <div class="demo-buttons">
             <button class="btn-secondary" data-demo="./demo/sample-utf8.txt">데모 열기 (UTF-8)</button>
             <button class="btn-secondary" data-demo="./demo/sample-euckr.txt">데모 열기 (EUC-KR)</button>
