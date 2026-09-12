@@ -48,6 +48,7 @@
     <symbol id="i-book" viewBox="0 -960 960 960"><path d="M458.5-181q-10.5-3-19.5-8-41-25-86-38t-93-13q-42 0-82.5 11T100-198q-21 11-40.5-1T40-234v-482q0-11 5.5-21T62-752q46-24 96-36t102-12q58 0 113.5 15T480-740v484q51-32 107-48t113-16q36 0 70.5 6t69.5 18v-480q15 5 29.5 10.5T898-752q11 5 16.5 15t5.5 21v482q0 23-19.5 35t-40.5 1q-37-20-77.5-31T700-240q-48 0-93 13t-86 38q-9 5-19.5 8t-21.5 3q-11 0-21.5-3ZM593-390q-10 9-21.5 3.5T560-405v-327q0-4 1.5-7.5t4.5-6.5l160-160q10-10 22-5t12 19v343q0 5-2 8.5t-5 6.5L593-390Zm-193 95v-396q-33-14-68.5-21.5T260-720q-37 0-72 7t-68 21v397q35-13 69.5-19t70.5-6q36 0 70.5 6t69.5 19Zm0 0v-396 396Z"/></symbol>
     <symbol id="i-expand" viewBox="0 -960 960 960"><path d="M480-345q-8 0-15-2.5t-13-8.5L228-580q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L508-356q-6 6-13 8.5t-15 2.5Z"/></symbol>
     <symbol id="i-logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="13" fill="#B4532A"/><g transform="translate(32 0) skewY(7) translate(-32 0)"><rect x="8.3" y="16.3" width="22.7" height="31.4" rx="2.9" fill="#FBF7F0"/><rect x="12.5" y="23.7" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="12.5" y="30.4" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="12.5" y="37.1" width="8.6" height="2.9" rx="1.45" fill="#3B342E"/></g><g transform="translate(32 0) skewY(-7) translate(-32 0)"><rect x="33" y="16.3" width="22.7" height="31.4" rx="2.9" fill="#FBF7F0"/><rect x="37.2" y="23.7" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="37.2" y="30.4" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="37.2" y="37.1" width="8.6" height="2.9" rx="1.45" fill="#3B342E"/><path d="M48.7 14.4h4.8v14.7l-2.4-3.2-2.4 3.2z" fill="#F2C14E"/></g></symbol>
+    <symbol id="i-info" viewBox="0 -960 960 960"><path d="M508.5-291.5Q520-303 520-320v-160q0-17-11.5-28.5T480-520q-17 0-28.5 11.5T440-480v160q0 17 11.5 28.5T480-280q17 0 28.5-11.5Zm0-320Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></symbol>
     <symbol id="i-download" viewBox="0 -960 960 960"><path d="M480-337q-8 0-15-2.5t-13-8.5L308-492q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T365-549l75 75v-286q0-17 11.5-28.5T480-800q17 0 28.5 11.5T520-760v286l75-75q12-12 28.5-11.5T652-548q11 12 11.5 28T652-492L508-348q-6 6-13 8.5t-15 2.5ZM240-160q-33 0-56.5-23.5T160-240v-80q0-17 11.5-28.5T200-360q17 0 28.5 11.5T240-320v80h480v-80q0-17 11.5-28.5T760-360q17 0 28.5 11.5T800-320v80q0 33-23.5 56.5T720-160H240Z"/></symbol>
   </svg>
 
@@ -55,7 +56,7 @@
     <!-- 서재 -->
     <section id="library" class="screen library">
       <header class="app-bar">
-        <h1><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>펼침</h1>
+        <h1><button type="button" class="wordmark" id="btn-about" aria-label="펼침 앱 정보"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>펼침</button></h1>
         <button id="btn-install" class="btn-text" hidden><svg><use href="#i-download"/></svg>설치</button>
       </header>
       <main class="library-body">
@@ -71,6 +72,7 @@
           </div>
           <p class="hint small">항목 오른쪽의 ⋮ 버튼이나 길게 누르기로 삭제할 수 있습니다.</p>
         </div>
+        <button type="button" class="about-link" id="library-about">펼침 <span id="about-version-footer"></span> · <u>정보와 라이선스</u></button>
         <div id="library-fatal" class="empty" hidden>
           <svg class="empty-icon"><use href="#i-file"/></svg>
           <p class="lead">저장 공간을 열 수 없습니다</p>
@@ -306,6 +308,32 @@
     </div>
 
     <!-- 범용 확인 (큰 파일 열기, 같은 제목 교체) -->
+    <!-- 정보 -->
+    <div class="overlay" id="ov-about" hidden>
+      <div class="sheet menu">
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+        </div>
+        <div class="sheet-body">
+          <div class="about-head">
+            <svg class="about-logo" aria-hidden="true"><use href="#i-logo"/></svg>
+            <div>
+              <div class="about-name">펼침 <span class="about-version" id="about-version"></span></div>
+              <div class="about-tagline">두 쪽으로 펼쳐 읽는 txt 뷰어</div>
+            </div>
+          </div>
+          <p class="about-text">파일은 이 기기의 브라우저 저장소에만 저장되며 서버로 보내지 않습니다.</p>
+          <div class="sheet-section"><svg><use href="#i-info"/></svg>오픈소스 라이선스</div>
+          <ul class="about-list">
+            <li><a href="https://github.com/Guest-01/text-viewer-pwa" target="_blank" rel="noopener">펼침 (text-viewer-pwa)</a><span class="muted">MIT License</span></li>
+            <li><a href="https://github.com/orioncactus/pretendard" target="_blank" rel="noopener">Pretendard</a><span class="muted">SIL Open Font License 1.1</span></li>
+            <li><a href="https://github.com/notofonts/noto-cjk" target="_blank" rel="noopener">Noto Serif KR</a><span class="muted">SIL Open Font License 1.1</span></li>
+            <li><a href="https://fonts.google.com/icons" target="_blank" rel="noopener">Material Symbols Rounded</a><span class="muted">Apache License 2.0</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="overlay" id="ov-ask" hidden>
       <div class="sheet menu">
         <div class="sheet-head">

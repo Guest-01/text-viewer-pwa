@@ -18,6 +18,7 @@ const PRESETS = {
   large: { fontSize: 22, lineHeight: 1.8, margin: 16 },
 };
 const GUIDE_KEY = 'tv.guideShown';
+const APP_VERSION = '0.1.0'; // package.json의 version과 함께 올린다
 const SPEED_KEY = 'tv.readSpeed'; // 분당 글자 수 (지수 이동 평균)
 const DEFAULT_CPM = 600;
 const THEME_COLORS = { light: '#fbfaf7', dark: '#121214' };
@@ -906,6 +907,7 @@ async function init() {
     console.error('IndexedDB 사용 불가', err);
     $('#library-empty').hidden = true;
     $('#library-fatal').hidden = false;
+    $('#library-about').hidden = true;
     $('#btn-open').hidden = true;
     return;
   }
@@ -1028,6 +1030,12 @@ async function init() {
     state.installPrompt = null;
     $('#btn-install').hidden = true;
   });
+
+  // 정보 시트: 상단 로고와 서재 맨 아래 줄 두 곳에서 연다
+  $('#about-version').textContent = 'v' + APP_VERSION;
+  $('#about-version-footer').textContent = 'v' + APP_VERSION;
+  $('#btn-about').addEventListener('click', () => openOverlay('ov-about'));
+  $('#library-about').addEventListener('click', () => openOverlay('ov-about'));
 
   // 웹폰트(명조)가 늦게 도착하면 글자 폭이 바뀌므로 페이지를 다시 배치한다.
   if (document.fonts && document.fonts.addEventListener) {

@@ -22,6 +22,7 @@
 - 책갈피, 본문 검색(결과 강조)
 - 인코딩 자동 감지(UTF-8, EUC-KR, UTF-16) 및 수동 변경 (바꾸면 읽던 위치와 책갈피를 비율로 옮겨 유지)
 - PWA: 홈 화면 설치, 오프라인 동작, 파일 관리자 "공유"로 txt 받기(Web Share Target)
+- 정보: 서재 맨 아래 줄("펼침 v0.1.0 · 정보와 라이선스")이나 상단 로고를 누르면 앱 이름·버전과 글꼴·아이콘의 오픈소스 라이선스를 표시
 
 ## 실행
 
@@ -80,6 +81,7 @@ manifest.webmanifest  PWA 매니페스트
 server.js             개발 서버
 scripts/              아이콘/데모/글꼴 생성 스크립트
 demo/                 데모 텍스트
+LICENSE               앱 코드의 MIT 라이선스 (글꼴·아이콘 라이선스는 아래 참고)
 ```
 
 ## 폰트와 아이콘
@@ -98,7 +100,7 @@ demo/                 데모 텍스트
   범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요. 서비스 워커가 `fonts/`를 불변으로 캐시하므로 같은 이름에 다른 범위를 넣으면 옛 캐시가 남습니다.
 - 앱 아이콘(`icons/`)은 펼친 책 두 쪽과 책갈피 리본을 `scripts/make-icons.js`가 도형으로 그린 것입니다. 배경은 강조색과 같은 테라코타입니다.
 - 서재 상단의 로고는 같은 그림을 SVG 심볼(`#i-logo`)로 옮긴 것입니다.
-- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 18개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
+- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 19개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
 
 ## 저장 구조
 
@@ -109,3 +111,10 @@ demo/                 데모 텍스트
 - 설치한 앱과 브라우저 탭이 같은 저장소를 공유하므로, 서재 화면은 다시 보일 때마다 목록을 새로 읽습니다. 같은 책을 두 창에서 동시에 읽으면 나중에 저장한 위치가 남습니다.
 - 읽던 위치는 글자 오프셋으로 저장하므로 글꼴 크기나 화면 크기가 바뀌어도 같은 문장에서 이어집니다.
 - 설정은 `localStorage` 의 `tv.settings` 에 저장됩니다.
+
+## 라이선스
+
+- 앱 코드는 [MIT License](LICENSE)입니다.
+- 동봉 글꼴 Pretendard와 Noto Serif KR은 SIL Open Font License 1.1이며 원문은 `fonts/`에 있습니다.
+- UI 아이콘 Material Symbols Rounded는 Apache License 2.0입니다.
+- 이 고지는 앱 안의 정보 시트(서재 맨 아래 줄 또는 상단 로고)에도 표시됩니다. 버전 번호는 `package.json`과 `js/app.js`의 `APP_VERSION` 두 곳에 있으므로 함께 올립니다.
