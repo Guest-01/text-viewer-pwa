@@ -336,8 +336,14 @@ input[type="range"].slider::-moz-range-thumb {
 .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 4px auto 10px; }
 .sheet-title { font-size: 17px; margin: 6px 0 8px; letter-spacing: -0.01em; }
 .sheet.settings { max-height: 64%; padding-top: 6px; }
-.sheet-section { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); padding: 14px 0 4px; }
-.sheet-section:first-of-type { padding-top: 6px; }
+/* 섹션 라벨: 작은 회색 글자 앞에 아이콘을 붙이고, 섹션 사이에는 얇은 선과 넉넉한 여백을 둔다. */
+.sheet-section {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted);
+  padding: 18px 0 6px; margin-top: 8px; border-top: 1px solid var(--border);
+}
+.sheet-section svg { width: 16px; height: 16px; }
+.sheet-handle + .sheet-section { padding-top: 4px; margin-top: 0; border-top: 0; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; min-height: 48px; }
 .setting-label { font-size: 15px; letter-spacing: -0.005em; }
 .setting-label small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }

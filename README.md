@@ -94,7 +94,7 @@ demo/                 데모 텍스트
   ```
 
   범위를 바꾸면 `fonts/` 파일명의 버전(`v1`)과 `css/style.css`, `sw.js`의 경로도 함께 올리세요. 서비스 워커가 `fonts/`를 불변으로 캐시하므로 같은 이름에 다른 범위를 넣으면 옛 캐시가 남습니다.
-- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 15개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
+- UI 아이콘은 [Material Symbols Rounded](https://fonts.google.com/icons)(Apache License 2.0)에서 필요한 18개의 SVG 경로만 `index.html`의 심볼 스프라이트에 복사한 것입니다. 런타임에 내려받는 파일은 없습니다.
 
 ## 저장 구조
 
