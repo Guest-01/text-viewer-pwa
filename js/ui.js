@@ -40,6 +40,51 @@ window.addEventListener('popstate', () => {
   if (stack.length) hide(stack.pop());
 });
 
+// 시트 머리(핸들·제목)를 아래로 끌면 손가락을 따라 내려오고, 충분히 내리거나 빠르게 튕기면 닫힌다.
+// 핸들을 탭만 해도 닫힌다. 본문 영역은 스크롤에 쓰므로 여기서는 다루지 않는다.
+document.addEventListener('pointerdown', (e) => {
+  const head = e.target.closest('.sheet-head');
+  if (!head || !stack.length || e.button !== 0) return;
+  const sheet = head.closest('.sheet');
+  const overlay = sheet && sheet.closest('.overlay');
+  if (!overlay || stack[stack.length - 1].el !== overlay) return;
+  const startY = e.clientY;
+  const startT = performance.now();
+  const onHandle = !!e.target.closest('.sheet-handle');
+  let dy = 0;
+  let moved = false;
+  try { head.setPointerCapture(e.pointerId); } catch { /* 합성 이벤트 등 잡을 포인터가 없으면 그냥 진행 */ }
+  sheet.style.transition = 'none';
+  const onMove = (ev) => {
+    dy = Math.max(0, ev.clientY - startY);
+    if (dy > 4) moved = true;
+    sheet.style.transform = `translateY(${dy}px)`;
+  };
+  const onUp = (ev) => {
+    head.removeEventListener('pointermove', onMove);
+    head.removeEventListener('pointerup', onUp);
+    head.removeEventListener('pointercancel', onUp);
+    const dt = Math.max(1, performance.now() - startT);
+    const cancelled = ev.type === 'pointercancel';
+    const tap = !moved && onHandle && !cancelled;
+    const far = dy > Math.min(120, sheet.offsetHeight * 0.3);
+    const fling = dy > 24 && dy / dt > 0.4;
+    if (tap || far || fling) {
+      // 이미 내려온 자리에서 이어서 사라지도록 인라인 transform으로 마무리한 뒤 정리한다
+      sheet.style.transition = 'transform 0.2s var(--ease-out)';
+      sheet.style.transform = 'translateY(100%)';
+      closeOverlay();
+      setTimeout(() => { sheet.style.transition = ''; sheet.style.transform = ''; }, 260);
+    } else {
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+    }
+  };
+  head.addEventListener('pointermove', onMove);
+  head.addEventListener('pointerup', onUp);
+  head.addEventListener('pointercancel', onUp);
+});
+
 // 배경 탭으로 닫기
 document.addEventListener('click', (e) => {
   const overlay = e.target.closest('.overlay');
@@ -47,6 +92,8 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-close]')) closeOverlay();
+  // 핸들은 포인터로는 위에서 처리했고, 키보드(Enter/Space)로 누른 click(detail 0)만 여기서 닫는다
+  else if (e.detail === 0 && e.target.closest('.sheet-handle')) closeOverlay();
 });
 
 let toastTimer = null;

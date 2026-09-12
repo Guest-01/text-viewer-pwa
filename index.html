@@ -123,77 +123,81 @@
     <!-- 설정 시트: 본문이 보이도록 어둡게 덮지 않고(preview) 절반 높이로 연다 -->
     <div class="overlay preview" id="ov-settings" hidden>
       <div class="sheet settings">
-        <div class="sheet-handle"></div>
-        <div class="sheet-section"><svg><use href="#i-text"/></svg>본문</div>
-        <div class="preset-row">
-          <button class="preset" data-preset="comfort"><b>가</b>편안하게</button>
-          <button class="preset" data-preset="dense"><b>가</b>촘촘하게</button>
-          <button class="preset" data-preset="large"><b>가</b>큰 글씨</button>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
         </div>
-        <div class="setting-row">
-          <span class="setting-label">글꼴</span>
-          <div class="segmented">
-            <button data-set="font" data-value="sans">고딕</button>
-            <button data-set="font" data-value="serif" class="serif">명조</button>
-          </div>
-        </div>
-        <!-- 세부 조정: 프리셋이 주된 조작이고, 스테퍼는 접어 둔다. 현재 값이 어느 프리셋과도 다르면 펼친 채로 연다. -->
-        <button class="setting-row detail-toggle" id="btn-detail" aria-expanded="false" aria-controls="detail-rows">
-          <span class="setting-label">세부 조정<small id="detail-summary"></small></span>
-          <svg class="chevron"><use href="#i-expand"/></svg>
-        </button>
-        <div id="detail-rows" class="detail-rows" hidden>
-          <div class="setting-row">
-            <span class="setting-label">글자 크기</span>
-            <div class="stepper"><button id="font-size-dec" aria-label="글자 크기 줄이기">−</button><span id="val-font-size">18</span><button id="font-size-inc" aria-label="글자 크기 키우기">+</button></div>
+        <div class="sheet-body">
+          <div class="sheet-section"><svg><use href="#i-text"/></svg>본문</div>
+          <div class="preset-row">
+            <button class="preset" data-preset="comfort"><b>가</b>편안하게</button>
+            <button class="preset" data-preset="dense"><b>가</b>촘촘하게</button>
+            <button class="preset" data-preset="large"><b>가</b>큰 글씨</button>
           </div>
           <div class="setting-row">
-            <span class="setting-label">줄간격</span>
-            <div class="stepper"><button id="line-height-dec" aria-label="줄간격 줄이기">−</button><span id="val-line-height">1.7</span><button id="line-height-inc" aria-label="줄간격 늘리기">+</button></div>
+            <span class="setting-label">글꼴</span>
+            <div class="segmented">
+              <button data-set="font" data-value="sans">고딕</button>
+              <button data-set="font" data-value="serif" class="serif">명조</button>
+            </div>
+          </div>
+          <!-- 세부 조정: 프리셋이 주된 조작이고, 스테퍼는 접어 둔다. 현재 값이 어느 프리셋과도 다르면 펼친 채로 연다. -->
+          <button class="setting-row detail-toggle" id="btn-detail" aria-expanded="false" aria-controls="detail-rows">
+            <span class="setting-label">세부 조정<small id="detail-summary"></small></span>
+            <svg class="chevron"><use href="#i-expand"/></svg>
+          </button>
+          <div id="detail-rows" class="detail-rows" hidden>
+            <div class="setting-row">
+              <span class="setting-label">글자 크기</span>
+              <div class="stepper"><button id="font-size-dec" aria-label="글자 크기 줄이기">−</button><span id="val-font-size">18</span><button id="font-size-inc" aria-label="글자 크기 키우기">+</button></div>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">줄간격</span>
+              <div class="stepper"><button id="line-height-dec" aria-label="줄간격 줄이기">−</button><span id="val-line-height">1.7</span><button id="line-height-inc" aria-label="줄간격 늘리기">+</button></div>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">여백</span>
+              <div class="stepper"><button id="margin-dec" aria-label="여백 줄이기">−</button><span id="val-margin">4</span><button id="margin-inc" aria-label="여백 늘리기">+</button></div>
+            </div>
           </div>
           <div class="setting-row">
-            <span class="setting-label">여백</span>
-            <div class="stepper"><button id="margin-dec" aria-label="여백 줄이기">−</button><span id="val-margin">4</span><button id="margin-inc" aria-label="여백 늘리기">+</button></div>
+            <span class="setting-label">양쪽 정렬</span>
+            <button class="switch" role="switch" aria-checked="false" data-toggle="justify" aria-label="양쪽 정렬"></button>
           </div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">양쪽 정렬</span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="justify" aria-label="양쪽 정렬"></button>
-        </div>
 
-        <div class="sheet-section"><svg><use href="#i-contrast"/></svg>화면</div>
-        <div class="setting-row">
-          <span class="setting-label">테마</span>
-          <div class="segmented">
-            <button data-set="theme" data-value="system">기기</button>
-            <button data-set="theme" data-value="light">밝게</button>
-            <button data-set="theme" data-value="dark">어둡게</button>
+          <div class="sheet-section"><svg><use href="#i-contrast"/></svg>화면</div>
+          <div class="setting-row">
+            <span class="setting-label">테마</span>
+            <div class="segmented">
+              <button data-set="theme" data-value="system">기기</button>
+              <button data-set="theme" data-value="light">밝게</button>
+              <button data-set="theme" data-value="dark">어둡게</button>
+            </div>
           </div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">화면 꺼짐 방지</span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="keepAwake" aria-label="화면 꺼짐 방지"></button>
-        </div>
+          <div class="setting-row">
+            <span class="setting-label">화면 꺼짐 방지</span>
+            <button class="switch" role="switch" aria-checked="false" data-toggle="keepAwake" aria-label="화면 꺼짐 방지"></button>
+          </div>
 
-        <div class="sheet-section"><svg><use href="#i-book"/></svg>읽기</div>
-        <div class="setting-row" id="row-spread">
-          <span class="setting-label">2쪽 보기</span>
-          <div class="segmented">
-            <button data-set="spread" data-value="auto">자동</button>
-            <button data-set="spread" data-value="1">1쪽</button>
-            <button data-set="spread" data-value="2">2쪽</button>
+          <div class="sheet-section"><svg><use href="#i-book"/></svg>읽기</div>
+          <div class="setting-row" id="row-spread">
+            <span class="setting-label">2쪽 보기</span>
+            <div class="segmented">
+              <button data-set="spread" data-value="auto">자동</button>
+              <button data-set="spread" data-value="1">1쪽</button>
+              <button data-set="spread" data-value="2">2쪽</button>
+            </div>
           </div>
-        </div>
-        <div class="setting-row">
-          <span class="setting-label">쪽수와 남은 시간<small>화면 아래에 쪽수, 진행률, 남은 시간</small></span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="statusBar" aria-label="쪽수와 남은 시간 표시"></button>
-        </div>
-        <div class="setting-row" id="row-left-next">
-          <span class="setting-label">한 손 읽기<small>왼쪽을 눌러도 다음 페이지</small></span>
-          <button class="switch" role="switch" aria-checked="false" data-toggle="leftNext" aria-label="한 손 읽기"></button>
-        </div>
-        <div class="sheet-foot">
-          <button class="btn-link" id="btn-reset-settings">기본값으로</button>
+          <div class="setting-row">
+            <span class="setting-label">쪽수와 남은 시간<small>화면 아래에 쪽수, 진행률, 남은 시간</small></span>
+            <button class="switch" role="switch" aria-checked="false" data-toggle="statusBar" aria-label="쪽수와 남은 시간 표시"></button>
+          </div>
+          <div class="setting-row" id="row-left-next">
+            <span class="setting-label">한 손 읽기<small>왼쪽을 눌러도 다음 페이지</small></span>
+            <button class="switch" role="switch" aria-checked="false" data-toggle="leftNext" aria-label="한 손 읽기"></button>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn-link" id="btn-reset-settings">기본값으로</button>
+          </div>
         </div>
       </div>
     </div>
@@ -239,70 +243,94 @@
     <!-- 더보기 메뉴 -->
     <div class="overlay" id="ov-more" hidden>
       <div class="sheet menu">
-        <div class="sheet-handle"></div>
-        <div class="info-box">
-          <div><span class="muted">인코딩</span> <span id="info-encoding"></span></div>
-          <div><span class="muted">크기</span> <span id="info-size"></span></div>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
         </div>
-        <button class="menu-item" id="menu-encoding">인코딩 변경</button>
-        <button class="menu-item" id="menu-start">맨 처음으로</button>
-        <button class="menu-item" id="menu-guide">탭 영역 안내</button>
-        <button class="menu-item danger" id="menu-delete">이 파일 삭제</button>
+        <div class="sheet-body">
+          <div class="info-box">
+            <div><span class="muted">인코딩</span> <span id="info-encoding"></span></div>
+            <div><span class="muted">크기</span> <span id="info-size"></span></div>
+          </div>
+          <button class="menu-item" id="menu-encoding">인코딩 변경</button>
+          <button class="menu-item" id="menu-start">맨 처음으로</button>
+          <button class="menu-item" id="menu-guide">탭 영역 안내</button>
+          <button class="menu-item danger" id="menu-delete">이 파일 삭제</button>
+        </div>
       </div>
     </div>
 
     <!-- 인코딩 선택 -->
     <div class="overlay" id="ov-encoding" hidden>
       <div class="sheet menu">
-        <div class="sheet-handle"></div>
-        <h2 class="sheet-title">인코딩</h2>
-        <ul class="row-list" id="encoding-list"></ul>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+          <h2 class="sheet-title">인코딩</h2>
+        </div>
+        <div class="sheet-body">
+          <ul class="row-list" id="encoding-list"></ul>
+        </div>
       </div>
     </div>
 
     <!-- 서재 항목 메뉴 -->
     <div class="overlay" id="ov-item" hidden>
       <div class="sheet menu">
-        <div class="sheet-handle"></div>
-        <h2 class="sheet-title" id="item-title"></h2>
-        <p class="hint" id="item-meta"></p>
-        <button class="menu-item" id="item-rename">제목 바꾸기</button>
-        <button class="menu-item" id="item-restart">처음부터 읽기</button>
-        <button class="menu-item danger" id="item-delete">삭제</button>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+          <h2 class="sheet-title" id="item-title"></h2>
+        </div>
+        <div class="sheet-body">
+          <p class="hint" id="item-meta"></p>
+          <button class="menu-item" id="item-rename">제목 바꾸기</button>
+          <button class="menu-item" id="item-restart">처음부터 읽기</button>
+          <button class="menu-item danger" id="item-delete">삭제</button>
+        </div>
       </div>
     </div>
 
     <!-- 제목 바꾸기 -->
     <div class="overlay" id="ov-rename" hidden>
       <form class="sheet menu" id="rename-form">
-        <div class="sheet-handle"></div>
-        <h2 class="sheet-title">제목 바꾸기</h2>
-        <input type="text" id="rename-input" class="text-input" autocomplete="off" enterkeyhint="done" maxlength="120">
-        <p class="hint small" id="rename-hint"></p>
-        <button type="submit" class="menu-item accent" id="rename-save">저장</button>
-        <button type="button" class="menu-item" data-close>취소</button>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+          <h2 class="sheet-title">제목 바꾸기</h2>
+        </div>
+        <div class="sheet-body">
+          <input type="text" id="rename-input" class="text-input" autocomplete="off" enterkeyhint="done" maxlength="120">
+          <p class="hint small" id="rename-hint"></p>
+          <button type="submit" class="menu-item accent" id="rename-save">저장</button>
+          <button type="button" class="menu-item" data-close>취소</button>
+        </div>
       </form>
     </div>
 
     <!-- 범용 확인 (큰 파일 열기, 같은 제목 교체) -->
     <div class="overlay" id="ov-ask" hidden>
       <div class="sheet menu">
-        <div class="sheet-handle"></div>
-        <h2 class="sheet-title" id="ask-title"></h2>
-        <p class="hint" id="ask-message"></p>
-        <button class="menu-item accent" id="ask-ok"></button>
-        <button class="menu-item" id="ask-cancel"></button>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+          <h2 class="sheet-title" id="ask-title"></h2>
+        </div>
+        <div class="sheet-body">
+          <p class="hint" id="ask-message"></p>
+          <button class="menu-item accent" id="ask-ok"></button>
+          <button class="menu-item" id="ask-cancel"></button>
+        </div>
       </div>
     </div>
 
     <!-- 삭제 확인 -->
     <div class="overlay" id="ov-confirm" hidden>
       <div class="sheet menu">
-        <div class="sheet-handle"></div>
-        <h2 class="sheet-title" id="confirm-title"></h2>
-        <p class="hint">이 파일과 읽던 위치, 책갈피를 삭제합니다.</p>
-        <button class="menu-item danger" id="confirm-delete">삭제</button>
-        <button class="menu-item" data-close>취소</button>
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+          <h2 class="sheet-title" id="confirm-title"></h2>
+        </div>
+        <div class="sheet-body">
+          <p class="hint">이 파일과 읽던 위치, 책갈피를 삭제합니다.</p>
+          <button class="menu-item danger" id="confirm-delete">삭제</button>
+          <button class="menu-item" data-close>취소</button>
+        </div>
       </div>
     </div>
 

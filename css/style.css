@@ -326,16 +326,21 @@ input[type="range"].slider::-moz-range-thumb {
   position: absolute; left: 0; right: 0; bottom: 0;
   background: var(--surface); color: var(--fg);
   border-radius: 20px 20px 0 0;
-  padding: 8px 20px calc(16px + env(safe-area-inset-bottom, 0px));
   transform: translateY(100%);
   transition: transform 0.34s var(--ease-out);
-  max-height: 85%; overflow-y: auto;
+  max-height: 85%;
+  display: flex; flex-direction: column; overflow: hidden;
   box-shadow: var(--shadow-sheet);
 }
 .overlay.open .sheet { transform: none; }
-.sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 4px auto 10px; }
+/* 시트 머리(핸들·제목)는 스크롤과 무관하게 고정되고, 아래로 끌면 시트가 닫힌다 (ui.js). 본문만 스크롤한다. */
+.sheet-head { flex: none; padding: 8px 20px 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 20px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.sheet-handle { display: block; position: relative; width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 4px auto 10px; }
+.sheet-handle::after { content: ''; position: absolute; inset: -14px -24px; } /* 손가락이 닿을 넉넉한 영역 */
 .sheet-title { font-size: 17px; margin: 6px 0 8px; letter-spacing: -0.01em; }
-.sheet.settings { max-height: 64%; padding-top: 6px; }
+.sheet.settings { max-height: 64%; }
+.sheet.settings .sheet-head { padding-top: 6px; }
 /* 섹션 라벨: 작은 회색 글자 앞에 아이콘을 붙이고, 섹션 사이에는 얇은 선과 넉넉한 여백을 둔다. */
 .sheet-section {
   display: flex; align-items: center; gap: 6px;
@@ -343,7 +348,7 @@ input[type="range"].slider::-moz-range-thumb {
   padding: 18px 0 6px; margin-top: 8px; border-top: 1px solid var(--border);
 }
 .sheet-section svg { width: 16px; height: 16px; }
-.sheet-handle + .sheet-section { padding-top: 4px; margin-top: 0; border-top: 0; }
+.sheet-body > .sheet-section:first-child { padding-top: 4px; margin-top: 0; border-top: 0; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; min-height: 48px; }
 .setting-label { font-size: 15px; letter-spacing: -0.005em; }
 .setting-label small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }

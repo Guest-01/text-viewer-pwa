@@ -71,7 +71,7 @@ js/reader.js          뷰어 엔진 (페이지 모드: CSS 다단 + 가로 이�
 js/text.js            본문 블록/청크 색인, 책 제목·장 제목(목차) 감지, 들여쓰기 공백 분리
 js/encoding.js        인코딩 감지, 디코딩
 js/db.js              IndexedDB (books 메타, contents 원본 버퍼)
-js/ui.js              오버레이 스택(뒤로가기 연동), 토스트, 유틸
+js/ui.js              오버레이 스택(뒤로가기 연동, 시트 머리를 끌거나 핸들을 탭해 닫기), 토스트, 유틸
 fonts/                동봉 글꼴 (Pretendard·Noto Serif KR 서브셋 woff2, 각 400/700, OFL 라이선스)
 sw.js                 Service Worker (앱 셸 캐시, 폰트 캐시 우선, share_target)
 manifest.webmanifest  PWA 매니페스트
