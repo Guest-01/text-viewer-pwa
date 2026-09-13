@@ -156,7 +156,8 @@ function nameForTransition(el) {
   return true;
 }
 function coverOf(id) {
-  return id ? $(`#book-list .book[data-id="${CSS.escape(id)}"] .book-cover`) : null;
+  // 서재의 카드(#hero)나 목록 항목(.book) 어느 쪽이든 그 책의 표지
+  return id ? $(`#library [data-id="${CSS.escape(id)}"] .book-cover`) : null;
 }
 function clearTransitionNames() {
   for (const el of vtNamed) el.style.viewTransitionName = '';
@@ -294,7 +295,11 @@ async function renderLibrary() {
   list.innerHTML = '';
   $('#library-empty').hidden = books.length > 0;
   renderStorageNote(books);
-  for (const b of books) {
+  // 마지막으로 연 책은 맨 위 카드로, 나머지만 목록에 (목록은 lastOpenedAt 내림차순)
+  const [first, ...rest] = books;
+  renderHero(first);
+  $('#list-label').hidden = rest.length === 0;
+  for (const b of rest) {
     const li = document.createElement('li');
     li.className = 'book';
     li.dataset.id = b.id;
@@ -317,6 +322,33 @@ async function renderLibrary() {
     onLongPress(li, () => openItemMenu(b));
     list.appendChild(li);
   }
+}
+
+/** 지금 읽는 책 카드. 본문을 해독하지 않고 저장된 메타(위치·길이·장 이름)와 읽기 속도로 채운다. */
+function renderHero(b) {
+  const el = $('#hero');
+  state.heroBook = b || null;
+  el.hidden = !b;
+  if (!b) return;
+  el.dataset.id = b.id;
+  const title = bookDisplayTitle(b);
+  const hue = hashHue(b.title);
+  const cover = $('#hero-cover');
+  cover.style.setProperty('--c1', `hsl(${hue} 42% 40%)`);
+  cover.style.setProperty('--c2', `hsl(${(hue + 28) % 360} 48% 26%)`);
+  $('#hero-monogram').textContent = coverLabel(title);
+  const progress = b.progress || 0;
+  const pct = Math.round(progress * 1000) / 10;
+  const done = progress >= 0.995;
+  $('#hero-label').textContent = done ? '다 읽은 책' : '지금 읽는 책';
+  $('#hero-title').textContent = title;
+  $('#hero-chapter').textContent = done ? '' : b.chapter || '';
+  const parts = [`${pct}%`];
+  if (!done && b.length) parts.push(`${formatMinutes((b.length - (b.position || 0)) / state.speed.cpm)} 남음`);
+  parts.push(formatDate(b.lastOpenedAt));
+  $('#hero-meta').textContent = parts.join(' · ');
+  $('#hero-resume-text').textContent = done ? '처음부터' : progress > 0 ? '이어 읽기' : '읽기 시작';
+  $('#hero-progress').style.width = `${pct}%`;
 }
 
 // 서재 항목 메뉴 (⋮ 또는 길게 누르기)
@@ -603,6 +635,7 @@ function handlePosition(offset) {
     if (state.lastToc !== undefined && chapter) showChapterChip(chapter);
   }
   state.lastToc = ti;
+  state.book.chapter = chapter; // 서재 카드가 본문을 해독하지 않고 현재 장을 보이도록 메타에 남긴다
   if (state.settings.statusBar) {
     const parts = [];
     const info = state.reader.getPageInfo();
@@ -1182,6 +1215,22 @@ async function init() {
     localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
     $('#install-card').hidden = true;
   });
+
+  // 지금 읽는 책 카드: 카드 어디를 눌러도 열리고, ⋮과 길게 누르기는 항목 메뉴, 다 읽은 책의 버튼은 처음부터
+  const hero = $('#hero');
+  hero.addEventListener('click', () => { if (state.heroBook) goBook(state.heroBook.id); });
+  $('#hero-more').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (state.heroBook) openItemMenu(state.heroBook);
+  });
+  $('#hero-resume').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const b = state.heroBook;
+    if (!b) return;
+    if ((b.progress || 0) >= 0.995) await db.putBook({ ...b, position: 0, progress: 0, chapter: '' });
+    goBook(b.id);
+  });
+  onLongPress(hero, () => { if (state.heroBook) openItemMenu(state.heroBook); });
 
   // 정보 시트: 상단 로고와 서재 맨 아래 줄 두 곳에서 연다
   $('#about-version').textContent = 'v' + APP_VERSION;

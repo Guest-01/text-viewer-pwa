@@ -72,6 +72,22 @@
             </div>
           </div>
         </div>
+        <!-- 지금 읽는 책: 마지막으로 연 책을 큰 표지와 현재 장, 남은 시간과 함께 카드로 (app.js renderHero) -->
+        <div id="hero" class="hero" hidden>
+          <div class="book-cover hero-cover" id="hero-cover"><span id="hero-monogram"></span></div>
+          <div class="hero-main">
+            <div class="hero-label" id="hero-label">지금 읽는 책</div>
+            <div class="hero-title" id="hero-title"></div>
+            <div class="hero-chapter" id="hero-chapter"></div>
+            <div class="hero-meta" id="hero-meta"></div>
+            <div class="hero-actions">
+              <button type="button" class="btn-primary" id="hero-resume"><svg><use href="#i-book"/></svg><span id="hero-resume-text">이어 읽기</span></button>
+            </div>
+          </div>
+          <button type="button" class="icon-btn hero-more" id="hero-more" aria-label="파일 메뉴"><svg><use href="#i-more"/></svg></button>
+          <div class="hero-progress"><span id="hero-progress"></span></div>
+        </div>
+        <div class="list-label" id="list-label" hidden>다른 책</div>
         <ul id="book-list" class="book-list"></ul>
         <p id="library-storage" class="storage-note" hidden></p>
         <div id="library-empty" class="empty" hidden>
