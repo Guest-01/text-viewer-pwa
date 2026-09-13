@@ -80,7 +80,7 @@ js/app.js             라우팅, 서재, 뷰어 UI, 설정/검색/책갈피
 js/reader.js          뷰어 엔진 (페이지 모드: CSS 다단 + 가로 이동, 앞뒤 청크 연속 렌더, 2쪽 보기, 드래그 넘김 / 스크롤 모드: 청크 윈도우)
 js/text.js            본문 블록/청크 색인, 책 제목·장 제목(목차) 감지, 들여쓰기 공백 분리
 js/encoding.js        인코딩 감지, 디코딩
-js/db.js              IndexedDB (books 메타, contents 원본 버퍼)
+js/db.js              IndexedDB (books 메타, contents 원본 버퍼, covers 표지 이미지)
 js/ui.js              오버레이 스택(뒤로가기 연동, 시트 머리를 끌거나 핸들을 탭해 닫기), 토스트, 유틸
 fonts/                동봉 글꼴 (Pretendard·Noto Serif KR 서브셋 woff2, 각 400/700, OFL 라이선스)
 sw.js                 Service Worker (앱 셸 캐시, 폰트 캐시 우선, share_target)
@@ -95,7 +95,7 @@ LICENSE               앱 코드의 MIT 라이선스 (글꼴·아이콘 라이�
 
 - 글꼴은 두 벌을 동봉하며 각각 보통(400)과 굵게(700) 두 파일입니다. 모두 SIL OFL 1.1입니다.
   - 고딕: [Pretendard](https://github.com/orioncactus/pretendard) (각 약 190KB, `fonts/LICENSE-Pretendard-OFL.txt`). UI 전체와 본문 고딕에 씁니다.
-  - 명조: [Noto Serif KR](https://github.com/notofonts/noto-cjk) (각 약 420KB, `fonts/LICENSE-OFL.txt`). 서재 제목, 표지 모노그램, 본문 명조에 씁니다.
+  - 명조: [Noto Serif KR](https://github.com/notofonts/noto-cjk) (각 약 420KB, `fonts/LICENSE-OFL.txt`). 서재 제목과 지금 읽는 책 카드의 제목, 표지 글자, 본문 명조에 씁니다.
 - 네 파일 모두 KS X 1001 완성형 한글 2,350자와 라틴·구두점·CJK 기호만 남기고 힌팅을 뺀 서브셋입니다. 범위 밖 글자(한자, 옛한글, 희귀 음절)는 시스템 폰트로 표시됩니다. Service Worker가 설치 시 미리 받아 캐시 우선으로 제공하므로 오프라인에서도 동작합니다. CSS의 `font-synthesis: none`으로 동봉하지 않은 굵기·기울임을 브라우저가 흉내 내지 않게 합니다.
 - 재생성은 Node만 있으면 됩니다. 한 번 만들어 커밋해 두고, 범위나 글꼴 버전을 바꿀 때만 다시 돌립니다.
 
@@ -112,6 +112,7 @@ LICENSE               앱 코드의 MIT 라이선스 (글꼴·아이콘 라이�
 ## 저장 구조
 
 - 파일 원본은 IndexedDB `contents` 에 ArrayBuffer로 저장하고, 열 때마다 선택한 인코딩으로 디코딩합니다. 서버로는 아무것도 보내지 않습니다.
+- 책 메타(`books`)에는 읽던 위치·진행률·글자 수·현재 장 이름·책갈피와 표지 프리셋(`cover`)이 있습니다. 직접 넣은 표지 이미지는 `covers` 에 책 id당 Blob 하나로 저장되며(DB 버전 2에서 추가), 책을 지우면 함께 지웁니다.
 - 브라우저 저장소는 기기 공간이 부족하면 지워질 수 있으므로, 첫 책을 넣을 때 `navigator.storage.persist()` 로 영구 저장을 요청합니다(설치한 PWA는 보통 바로 승인됨). 승인 여부는 서재 아래 한 줄에 표시됩니다. 사용자가 브라우저 데이터를 직접 지우는 경우는 막지 못합니다.
 - 저장 전에 남은 공간을 확인해 부족하면 저장하지 않고 안내합니다. 한도는 사이트당 기기 여유 공간의 약 60%(크로미엄)라 txt로는 사실상 닿지 않습니다.
 - IndexedDB를 열 수 없는 환경(일부 브라우저의 시크릿 모드 등)에서는 서재 대신 안내 문구를 보여주고 멈춥니다.
