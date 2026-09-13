@@ -363,13 +363,33 @@ h1, h2 { margin: 0; font-weight: 700; }
 .title-main { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .title-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .title-sub:empty { display: none; }
+/* 장이 바뀌면 부제가 살짝 교차되며 바뀐다 (app.js가 fade를 붙였다 뗀다) */
+.title-sub.fade { animation: sub-in 0.28s var(--ease-out); }
+@keyframes sub-in { from { opacity: 0; transform: translateY(3px); } }
+/* 책갈피를 넣을 때 아이콘이 한 번 튄다 */
+.icon-btn.pop svg { animation: icon-pop 0.42s var(--ease-spring); }
+@keyframes icon-pop { 0% { transform: scale(0.7); } 55% { transform: scale(1.3); } 100% { transform: scale(1); } }
 .icon-btn {
   width: 44px; height: 44px; border-radius: 22px; flex: none;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .icon-btn:active { background: var(--surface-2); }
-.progress-row { display: flex; align-items: center; gap: 12px; padding: 0 2px; }
+.progress-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 0 2px; }
 .progress-label { font-size: 13px; min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+/* 슬라이더 말풍선: 손잡이 위에 떠서 그 위치의 장 제목과 어림 쪽수를 보인다 (app.js showSliderBubble) */
+.slider-bubble {
+  position: absolute; bottom: calc(100% + 6px); left: 0;
+  transform: translate(-50%, 6px) scale(0.96); transform-origin: 50% 100%;
+  max-width: min(260px, 80vw); padding: 8px 12px; border-radius: 12px;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--border); box-shadow: var(--shadow-2);
+  opacity: 0; pointer-events: none; white-space: nowrap;
+  transition: opacity 0.14s ease, transform 0.22s var(--ease-spring);
+}
+.slider-bubble.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.bubble-chapter { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; }
+.bubble-chapter:empty { display: none; }
+.bubble-meta { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 1px; }
+.bubble-chapter:empty + .bubble-meta { font-size: 13.5px; color: var(--fg); margin-top: 0; }
 
 /* 진행률 슬라이더: 채워진 트랙 + 흰 원 손잡이 */
 input[type="range"].slider {
@@ -541,6 +561,20 @@ input[type="range"].slider::-moz-range-thumb {
   max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis;
 }
 .status-bar[hidden] { display: none; }
+/* 장 표시 칩: 새 장에 들어설 때 위쪽 가운데에 잠깐 떴다 사라진다 (app.js showChapterChip) */
+.chapter-chip {
+  position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px));
+  transform: translate(-50%, -6px);
+  max-width: calc(100% - 48px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12.5px; line-height: 1; color: var(--fg);
+  padding: 8px 14px; border-radius: 14px; background: var(--bar-bg); border: 1px solid var(--border);
+  box-shadow: var(--shadow-1); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  opacity: 0; pointer-events: none; z-index: 4;
+  transition: opacity 0.22s ease, transform 0.32s var(--ease-out);
+}
+.chapter-chip.show { opacity: 1; transform: translate(-50%, 0); }
+.chapter-chip[hidden] { display: none; }
+.reader.bars-visible .chapter-chip { opacity: 0; }
 .status-bar .sep { opacity: 0.45; margin: 0 5px; }
 .reader.bars-visible .status-bar { opacity: 0; }
 /* 표시줄이 켜져 있으면 본문 아래에 자리를 비운다 */

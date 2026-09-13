@@ -99,6 +99,8 @@
       <div id="viewport" class="viewport mode-page"></div>
       <!-- 상태 표시줄: 페이지 모드 "128 / 940 · 13.6%", 스크롤 모드 "13.6%" -->
       <div class="status-bar" id="status-bar" hidden></div>
+      <!-- 새 장에 들어설 때 위쪽에 잠깐 떴다 사라지는 장 제목 -->
+      <div class="chapter-chip" id="chapter-chip" hidden aria-live="polite"></div>
       <header class="bar top-bar">
         <button class="icon-btn" id="btn-back" aria-label="서재로"><svg><use href="#i-back"/></svg></button>
         <div class="title"><div class="title-main" id="reader-title"></div><div class="title-sub" id="reader-chapter"></div></div>
@@ -110,6 +112,11 @@
         <div class="progress-row">
           <input type="range" id="progress" class="slider" min="0" max="10000" value="0" aria-label="진행률">
           <span id="progress-label" class="progress-label">0.0%</span>
+          <!-- 슬라이더를 끄는 동안 손잡이 위에 뜨는 말풍선: 그 위치의 장 제목과 어림 쪽수 -->
+          <div class="slider-bubble" id="slider-bubble" hidden aria-hidden="true">
+            <div class="bubble-chapter" id="bubble-chapter"></div>
+            <div class="bubble-meta" id="bubble-meta"></div>
+          </div>
         </div>
         <div class="actions-row">
           <button class="action-btn" id="btn-toc"><svg><use href="#i-toc"/></svg><span>목차</span></button>

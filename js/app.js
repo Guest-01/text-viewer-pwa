@@ -505,6 +505,9 @@ async function openReader(id) {
     if (shared) nameForTransition($('#viewport'));
     $('#reader-title').textContent = bookDisplayTitle(book);
     $('#reader-chapter').textContent = '';
+    state.lastToc = undefined; // 첫 위치 보고에서는 장 칩을 띄우지 않는다
+    $('#chapter-chip').hidden = true;
+    $('#chapter-chip').classList.remove('show');
     state.speed.lastPos = null;
     setBarsVisible(false);
     applyReaderStyle();
@@ -589,7 +592,17 @@ function handlePosition(offset) {
   trackSpeed(offset);
   const toc = state.index.toc;
   const ti = tocIndexAt(state.index, offset);
-  $('#reader-chapter').textContent = ti >= 0 ? toc[ti].text : '';
+  const chapter = ti >= 0 ? toc[ti].text : '';
+  const sub = $('#reader-chapter');
+  if (sub.textContent !== chapter) {
+    sub.textContent = chapter;
+    sub.classList.remove('fade');
+    void sub.offsetWidth;
+    sub.classList.add('fade');
+    // 책을 연 직후는 빼고, 읽다가 다른 장에 들어설 때만 위쪽에 장 제목을 잠깐 보인다
+    if (state.lastToc !== undefined && chapter) showChapterChip(chapter);
+  }
+  state.lastToc = ti;
   if (state.settings.statusBar) {
     const parts = [];
     const info = state.reader.getPageInfo();
@@ -601,6 +614,47 @@ function handlePosition(offset) {
   updateBookmarkIcon();
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(flushSave, 400);
+}
+
+let chipTimer = null;
+function showChapterChip(text) {
+  const el = $('#chapter-chip');
+  el.textContent = text;
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(chipTimer);
+  chipTimer = setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => { if (!el.classList.contains('show')) el.hidden = true; }, 300);
+  }, 2200);
+}
+
+// 슬라이더 말풍선: 끄는 동안 손잡이 위에 그 위치의 장 제목과 어림 쪽수를 보인다
+const SLIDER_THUMB = 20; // css의 손잡이 지름
+function showSliderBubble(ratio) {
+  if (!state.index) return;
+  const bubble = $('#slider-bubble');
+  const slider = $('#progress');
+  const offset = Math.floor(ratio * state.index.length);
+  const ti = tocIndexAt(state.index, offset);
+  $('#bubble-chapter').textContent = ti >= 0 ? state.index.toc[ti].text : '';
+  const parts = [];
+  const info = state.reader && state.reader.getPageInfo();
+  if (info) parts.push(`약 ${Math.min(info.total, Math.floor(ratio * info.total) + 1)}쪽`);
+  parts.push(`${(ratio * 100).toFixed(1)}%`);
+  $('#bubble-meta').textContent = parts.join(' · ');
+  bubble.hidden = false;
+  // 손잡이 중심에 맞추되 줄 밖으로 나가지 않게 한다
+  const row = bubble.parentElement;
+  const center = slider.offsetLeft + SLIDER_THUMB / 2 + ratio * (slider.clientWidth - SLIDER_THUMB);
+  const half = bubble.offsetWidth / 2;
+  bubble.style.left = `${Math.max(half, Math.min(row.clientWidth - half, center))}px`;
+  requestAnimationFrame(() => bubble.classList.add('show'));
+}
+function hideSliderBubble() {
+  const bubble = $('#slider-bubble');
+  bubble.classList.remove('show');
+  setTimeout(() => { if (!bubble.classList.contains('show')) bubble.hidden = true; }, 200);
 }
 
 function flushSave() {
@@ -692,6 +746,11 @@ function addBookmarkHere() {
   haptic(12);
   toast('책갈피를 추가했습니다');
   updateBookmarkIcon();
+  const btn = $('#btn-bookmark');
+  btn.classList.remove('pop');
+  void btn.offsetWidth;
+  btn.classList.add('pop');
+  btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
   flushSave();
 }
 // 삭제는 확인 대신 "실행 취소"로 되돌릴 수 있게 한다.
@@ -1034,10 +1093,13 @@ async function init() {
   progress.addEventListener('input', () => {
     setSliderValue(progress, Number(progress.value));
     $('#progress-label').textContent = `${(progress.value / 100).toFixed(1)}%`;
+    showSliderBubble(progress.value / 10000);
   });
   progress.addEventListener('change', () => {
     if (state.reader) jumpTo((progress.value / 10000) * state.index.length);
+    setTimeout(hideSliderBubble, 350); // 옮겨진 자리를 잠깐 더 보여 준 뒤 거둔다
   });
+  for (const ev of ['pointerup', 'pointercancel', 'blur']) progress.addEventListener(ev, () => setTimeout(hideSliderBubble, 350));
 
   // 검색 결과 탐색 바
   $('#sn-prev').addEventListener('click', () => gotoSearchResult(state.search ? state.search.idx - 1 : 0));
