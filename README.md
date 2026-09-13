@@ -29,6 +29,7 @@
 - 인코딩 자동 감지(UTF-8, EUC-KR, UTF-16) 및 수동 변경 (바꾸면 읽던 위치와 책갈피를 비율로 옮겨 유지)
 - PWA: 홈 화면 설치, 오프라인 동작, 파일 관리자 "공유"로 txt 받기(Web Share Target)
   - 설치 가능해지면 서재 위에 안내 카드(전체 화면·공유로 받기·오프라인)와 상단 설치 버튼을 보입니다. "나중에"를 누르면 카드는 다시 보이지 않고(`localStorage`의 `tv.installDismissed`) 버튼만 남으며, 설치된 앱에서는 둘 다 숨깁니다
+  - 삼성 인터넷은 자체 WebAPK 서버가 `share_target`(POST)이 있는 매니페스트를 처리하지 못해 "다운로드하지 못했습니다"로 설치가 실패합니다(2026-09 기준, Chrome은 정상). 그래서 `index.html`의 head 스크립트가 삼성 인터넷에만 `share_target`을 뺀 `manifest-samsung.webmanifest`를 연결하고 `html.no-share`로 공유 안내 문구를 숨깁니다. 삼성 인터넷으로 설치한 앱은 공유로 받기만 빠집니다. 삼성이 서버를 고치면 그 스크립트와 `manifest-samsung.webmanifest`, CSS의 `.no-share` 규칙을 지우고 두 매니페스트를 다시 하나로 합치면 됩니다. 두 파일은 `share_target` 외에는 항상 같아야 합니다
 - 정보: 서재 맨 아래 줄("펼침 v0.1.0 · 정보와 라이선스")이나 상단 로고를 누르면 앱 이름·버전과 글꼴·아이콘의 오픈소스 라이선스를 표시
 
 ## 실행
@@ -89,6 +90,7 @@ js/ui.js              오버레이 스택(뒤로가기 연동, 시트 머리를 
 fonts/                동봉 글꼴 (Pretendard·Noto Serif KR 서브셋 woff2, 각 400/700, OFL 라이선스)
 sw.js                 Service Worker (앱 셸 캐시, 폰트 캐시 우선, share_target)
 manifest.webmanifest  PWA 매니페스트
+manifest-samsung.webmanifest  삼성 인터넷용 매니페스트 (share_target만 뺀 사본, 위 PWA 항목 참고)
 server.js             개발 서버
 scripts/              아이콘/데모/글꼴 생성 스크립트
 demo/                 데모 텍스트 (기능을 겪어 보는 짧은 안내서, 빈 서재의 "데모로 둘러보기")

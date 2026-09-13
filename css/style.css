@@ -159,6 +159,8 @@ h1, h2 { margin: 0; font-weight: 700; }
 .install-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .install-body { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--muted); word-break: keep-all; }
 .install-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: 6px -8px 0 0; }
+/* 삼성 인터넷(html.no-share)은 share_target 없는 매니페스트로 설치되므로 공유 기능을 약속하는 구절을 숨긴다 (index.html head 스크립트 참고) */
+.no-share .share-only { display: none; }
 .book-list { list-style: none; margin: 0; padding: 4px 0 8px; }
 .book {
   display: flex; gap: 14px; align-items: center;

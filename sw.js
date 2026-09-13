@@ -13,6 +13,7 @@ const ASSETS = [
   './js/reader.js',
   './js/ui.js',
   './manifest.webmanifest',
+  './manifest-samsung.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png',
