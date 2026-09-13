@@ -185,10 +185,11 @@ h1, h2 { margin: 0; font-weight: 700; }
 .book-progress span { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s var(--ease-out); }
 .storage-note { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; padding: 14px 28px 0; font-variant-numeric: tabular-nums; }
 /* 판권면처럼 맨 아래 한 줄: 누르면 정보 시트 */
-.about-link { display: block; width: 100%; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; padding: 10px 28px 18px; font-variant-numeric: tabular-nums; }
+/* 글자 폭만큼만 눌리도록 가운데 정렬한 축소 블록. 바깥 여백은 margin으로 둔다. */
+.about-link { display: table; width: auto; margin: 2px auto 10px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; padding: 8px 12px; border-radius: 10px; font-variant-numeric: tabular-nums; }
 .about-link u { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
-.about-link:active { color: var(--fg); }
-.empty + .about-link { padding-top: 0; }
+.about-link:active { color: var(--fg); background: var(--surface-2); }
+.empty + .about-link { margin-top: -8px; }
 .empty { text-align: center; padding: 64px 28px 24px; color: var(--muted); }
 .empty-icon { width: 60px; height: 60px; color: var(--border-strong); margin-bottom: 10px; }
 .empty p { margin: 8px 0; }
