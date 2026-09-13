@@ -1200,6 +1200,36 @@ function renderEncodingSheet() {
   }
 }
 
+// ---------- 인앱 브라우저 ----------
+// UA로 인앱 브라우저 종류를 알아낸다. 탈출 방법이 다른 카카오톡·라인은 따로 구분하고 나머지는 'other'.
+// 반환: null(일반 브라우저) | { app: 'kakao'|'line'|'other', android: boolean, ios: boolean }
+function inAppBrowser() {
+  const ua = navigator.userAgent;
+  const android = /Android/i.test(ua);
+  const ios = /iPhone|iPad|iPod/i.test(ua);
+  let app = null;
+  if (/KAKAOTALK/i.test(ua)) app = 'kakao';
+  else if (/\bLine\//i.test(ua)) app = 'line';
+  else if (/NAVER\(inapp|DaumApps|Instagram|FBAN|FBAV|FB_IAB|; wv\)/i.test(ua)) app = 'other';
+  // iOS WebView: Safari 토큰이 없다 (Chrome·Firefox·Edge iOS는 Safari 토큰을 유지한다)
+  else if (ios && !/Safari\//i.test(ua)) app = 'other';
+  return app ? { app, android, ios } : null;
+}
+
+// 인앱 브라우저에서 외부 브라우저로 target을 여는 주소. 방법이 없으면 null (iOS 일반 WebView).
+function externalBrowserUrl(inApp, target) {
+  if (inApp.app === 'kakao') return 'kakaotalk://web/openExternal?url=' + encodeURIComponent(target); // 비공식이지만 널리 쓰이는 스킴, Android·iOS 모두
+  if (inApp.app === 'line') { const u = new URL(target); u.searchParams.set('openExternalBrowser', '1'); return u.href; } // 라인 공식 파라미터
+  if (inApp.android) {
+    // Chrome 공식 intent 스킴. 사용자 제스처 안에서만 열리고, 지정한 브라우저가 없으면 fallback 주소로 돌아온다.
+    // 삼성 기기(모델명 SM-)는 기본 탑재된 삼성 인터넷을, 그 외는 Chrome을 연다
+    const u = new URL(target);
+    const pkg = /\bSM-/.test(navigator.userAgent) ? 'com.sec.android.app.sbrowser' : 'com.android.chrome';
+    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=${pkg};S.browser_fallback_url=${encodeURIComponent(target)};end`;
+  }
+  return null;
+}
+
 // ---------- 공유 받은 파일 ----------
 async function importSharedFiles() {
   if (!('caches' in window)) return false;
@@ -1389,6 +1419,28 @@ async function init() {
     $('#install-card').hidden = true;
   });
 
+  // 인앱 브라우저(카카오톡·네이버·인스타그램 등 WebView)는 beforeinstallprompt가 오지 않아 설치 카드가 뜨지 않는다.
+  // 대신 외부 브라우저로 여는 카드를 보인다. 자동으로 보내지는 않는다: Android intent는 사용자 제스처가 필요하고,
+  // 공유 링크를 잠깐 보려는 사람을 쫓아내지 않기 위해서다.
+  const inApp = inAppBrowser();
+  if (inApp && !isStandalone()) {
+    $('#inapp-card').hidden = false;
+    $('#inapp-open').addEventListener('click', async () => {
+      const target = new URL('./', location.href).href; // 서재 루트, 해시·쿼리 없이
+      // 스킴이 막히면 붙여넣게 하려고 제스처 안에서 미리 복사해 둔다
+      try { await navigator.clipboard?.writeText(target); } catch {}
+      const escape = externalBrowserUrl(inApp, target);
+      if (!escape) { showInAppFallback(); return; }
+      // 외부 브라우저가 열리면 이 페이지는 가려진다. 1.5초 뒤에도 그대로 보이면 스킴이 막힌 것
+      setTimeout(() => { if (document.visibilityState === 'visible') showInAppFallback(); }, 1500);
+      location.href = escape;
+    });
+  }
+  function showInAppFallback() {
+    $('#inapp-body').hidden = true;
+    $('#inapp-fallback').hidden = false;
+  }
+
   // 지금 읽는 책 카드: 카드 어디를 눌러도 열리고, ⋮과 길게 누르기는 항목 메뉴, 다 읽은 책의 버튼은 처음부터
   const hero = $('#hero');
   hero.addEventListener('click', () => { if (state.heroBook) goBook(state.heroBook.id); });
@@ -1431,6 +1483,8 @@ async function init() {
     history.replaceState(null, '', location.pathname);
     if (await importSharedFiles()) return;
   }
+  // 라인 인앱에서 외부 브라우저로 나올 때 붙인 표식은 주소에서 지운다 (externalBrowserUrl 참고)
+  if (params.has('openExternalBrowser')) history.replaceState(null, '', location.pathname);
 
   // 마지막 책 이어읽기
   if (!location.hash) {

@@ -58,6 +58,7 @@
     <symbol id="i-expand" viewBox="0 -960 960 960"><path d="M480-345q-8 0-15-2.5t-13-8.5L228-580q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L508-356q-6 6-13 8.5t-15 2.5Z"/></symbol>
     <symbol id="i-logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="13" fill="#B4532A"/><g transform="translate(32 0) skewY(7) translate(-32 0)"><rect x="8.3" y="16.3" width="22.7" height="31.4" rx="2.9" fill="#FBF7F0"/><rect x="12.5" y="23.7" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="12.5" y="30.4" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="12.5" y="37.1" width="8.6" height="2.9" rx="1.45" fill="#3B342E"/></g><g transform="translate(32 0) skewY(-7) translate(-32 0)"><rect x="33" y="16.3" width="22.7" height="31.4" rx="2.9" fill="#FBF7F0"/><rect x="37.2" y="23.7" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="37.2" y="30.4" width="14.4" height="2.9" rx="1.45" fill="#3B342E"/><rect x="37.2" y="37.1" width="8.6" height="2.9" rx="1.45" fill="#3B342E"/><path d="M48.7 14.4h4.8v14.7l-2.4-3.2-2.4 3.2z" fill="#F2C14E"/></g></symbol>
     <symbol id="i-info" viewBox="0 -960 960 960"><path d="M508.5-291.5Q520-303 520-320v-160q0-17-11.5-28.5T480-520q-17 0-28.5 11.5T440-480v160q0 17 11.5 28.5T480-280q17 0 28.5-11.5Zm0-320Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></symbol>
+    <symbol id="i-open" viewBox="0 -960 960 960"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h240q17 0 28.5 11.5T480-800q0 17-11.5 28.5T440-760H200v560h560v-240q0-17 11.5-28.5T800-480q17 0 28.5 11.5T840-440v240q0 33-23.5 56.5T760-120H200Zm560-584L416-360q-11 11-28 11t-28-11q-11-11-11-28t11-28l344-344H600q-17 0-28.5-11.5T560-800q0-17 11.5-28.5T600-840h240v240q0 17-11.5 28.5T800-560q-17 0-28.5-11.5T760-600v-104Z"/></symbol>
     <symbol id="i-download" viewBox="0 -960 960 960"><path d="M480-337q-8 0-15-2.5t-13-8.5L308-492q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T365-549l75 75v-286q0-17 11.5-28.5T480-800q17 0 28.5 11.5T520-760v286l75-75q12-12 28.5-11.5T652-548q11 12 11.5 28T652-492L508-348q-6 6-13 8.5t-15 2.5ZM240-160q-33 0-56.5-23.5T160-240v-80q0-17 11.5-28.5T200-360q17 0 28.5 11.5T240-320v80h480v-80q0-17 11.5-28.5T760-360q17 0 28.5 11.5T800-320v80q0 33-23.5 56.5T720-160H240Z"/></symbol>
   </svg>
 
@@ -78,6 +79,18 @@
             <div class="install-actions">
               <button type="button" class="btn-link" id="install-later">나중에</button>
               <button type="button" class="btn-text" id="install-now"><svg><use href="#i-download"/></svg>설치</button>
+            </div>
+          </div>
+        </div>
+        <!-- 인앱 브라우저 안내: 카카오톡·네이버·인스타그램 등 WebView에서는 설치 신호가 오지 않으므로 외부 브라우저로 열도록 (app.js inAppBrowser) -->
+        <div id="inapp-card" class="install-card" hidden>
+          <svg class="install-logo" aria-hidden="true"><use href="#i-logo"/></svg>
+          <div class="install-text">
+            <p class="install-title">이 브라우저에서는 앱으로 설치할 수 없습니다</p>
+            <p class="install-body" id="inapp-body">Chrome이나 삼성 인터넷으로 열면 화면 전체로 읽고 오프라인에서도 열리는 앱으로 설치할 수 있습니다.</p>
+            <p class="install-body" id="inapp-fallback" hidden>주소를 복사했습니다. 브라우저 주소창에 붙여넣거나, 오른쪽 위 <b>⋯</b> 메뉴의 <b>다른 브라우저로 열기</b>를 눌러 주세요.</p>
+            <div class="install-actions">
+              <button type="button" class="btn-text" id="inapp-open"><svg><use href="#i-open"/></svg>브라우저에서 열기</button>
             </div>
           </div>
         </div>
