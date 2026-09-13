@@ -74,7 +74,7 @@
         </div>
         <!-- 지금 읽는 책: 마지막으로 연 책을 큰 표지와 현재 장, 남은 시간과 함께 카드로 (app.js renderHero) -->
         <div id="hero" class="hero" hidden>
-          <div class="book-cover hero-cover" id="hero-cover"><span id="hero-monogram"></span></div>
+          <div class="book-cover hero-cover" id="hero-cover"></div>
           <div class="hero-main">
             <div class="hero-label" id="hero-label">지금 읽는 책</div>
             <div class="hero-title" id="hero-title"></div>
@@ -319,11 +319,53 @@
         <div class="sheet-body">
           <p class="hint" id="item-meta"></p>
           <button class="menu-item" id="item-rename">제목 바꾸기</button>
+          <button class="menu-item" id="item-cover">표지 바꾸기</button>
           <button class="menu-item" id="item-restart">처음부터 읽기</button>
           <button class="menu-item danger" id="item-delete">삭제</button>
         </div>
       </div>
     </div>
+
+    <!-- 표지 바꾸기: 스타일·색·글자 프리셋 또는 내 사진. 누르는 즉시 반영되고 별도 저장 버튼은 없다 -->
+    <div class="overlay" id="ov-cover" hidden>
+      <div class="sheet menu">
+        <div class="sheet-head">
+          <button type="button" class="sheet-handle" aria-label="닫기"></button>
+          <h2 class="sheet-title">표지</h2>
+        </div>
+        <div class="sheet-body">
+          <div class="cover-preview"><div class="book-cover hero-cover" id="cover-preview"></div></div>
+          <div class="cover-row" id="cover-style-row">
+            <span class="cover-row-label">스타일</span>
+            <div class="chips">
+              <button type="button" class="chip" data-cover-style="gradient">그라데이션</button>
+              <button type="button" class="chip" data-cover-style="title">제목</button>
+              <button type="button" class="chip" data-cover-style="band">띠지</button>
+              <button type="button" class="chip" data-cover-style="plain">무지</button>
+              <button type="button" class="chip" data-cover-style="bound">양장</button>
+            </div>
+          </div>
+          <div class="cover-row">
+            <span class="cover-row-label">색</span>
+            <div class="swatches" id="cover-swatches"></div>
+          </div>
+          <div class="cover-row" id="cover-text-row">
+            <span class="cover-row-label">글자</span>
+            <div class="chips">
+              <button type="button" class="chip" data-cover-text="monogram">앞 두 글자</button>
+              <button type="button" class="chip" data-cover-text="title">제목</button>
+              <button type="button" class="chip" data-cover-text="none">없음</button>
+            </div>
+          </div>
+          <button type="button" class="menu-item" id="cover-pick">사진에서 고르기</button>
+          <button type="button" class="menu-item" id="cover-web">웹에서 찾기</button>
+          <p class="hint small">웹에서 찾기는 제목으로 이미지 검색을 새 탭에 엽니다. 마음에 드는 이미지를 저장한 뒤 "사진에서 고르기"로 넣으세요. 앱은 아무 데이터도 보내지 않습니다.</p>
+          <button type="button" class="menu-item danger" id="cover-clear-image" hidden>이미지 지우기</button>
+          <button type="button" class="menu-item" id="cover-reset">기본으로</button>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="cover-input" accept="image/*" hidden>
 
     <!-- 제목 바꾸기 -->
     <div class="overlay" id="ov-rename" hidden>

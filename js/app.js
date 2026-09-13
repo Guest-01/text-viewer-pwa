@@ -41,6 +41,8 @@ const state = {
   saveTimer: null,
   lowerText: null,
   installPrompt: null,
+  coverUrls: [], // 서재에 보이는 표지 이미지의 object URL (다시 그릴 때 놓는다)
+  coverBook: null, // 표지 시트가 열린 책
   wakeLock: null,
   search: null, // { results, q, idx } 결과로 이동한 뒤 탐색 바 상태
   speed: { cpm: loadSpeed(), lastPos: null, lastT: 0 }, // 읽기 속도 학습
@@ -100,6 +102,176 @@ function bookDisplayTitle(book) {
 function coverLabel(title) {
   const t = title.replace(/^[^\p{L}\p{N}]+/u, '');
   return (t.slice(0, 2) || '?').toUpperCase();
+}
+
+// ---------- 표지 ----------
+// 책 메타의 cover = { style, hue, text } 로 프리셋 표지를 그리고, coverImage 가 참이면 covers 저장소의 사진을 채운다.
+// 셋 다 없으면 지금까지처럼 제목에서 뽑은 색과 앞 두 글자다.
+const COVER_STYLES = ['gradient', 'title', 'band', 'plain', 'bound'];
+const COVER_TEXTS = ['monogram', 'title', 'none'];
+const COVER_HUES = [12, 32, 48, 95, 150, 185, 212, 250, 290, 340]; // 색 견본 10가지 (채도·명도는 자동 색과 같다)
+function coverSpec(book) {
+  const c = book.cover || {};
+  return {
+    style: COVER_STYLES.includes(c.style) ? c.style : 'gradient',
+    hue: Number.isFinite(c.hue) ? c.hue : null, // null = 자동
+    text: COVER_TEXTS.includes(c.text) ? c.text : 'monogram',
+  };
+}
+/** 표지 요소를 책에 맞게 채운다. 목록·카드·표지 시트 미리보기가 모두 이것을 쓴다. */
+function applyCover(el, book) {
+  const s = coverSpec(book);
+  const title = bookDisplayTitle(book);
+  const hue = s.hue == null ? hashHue(book.title) : s.hue;
+  for (const cls of [...el.classList]) if (cls.startsWith('cover-')) el.classList.remove(cls);
+  el.classList.add(`cover-${s.style}`);
+  el.classList.toggle('cover-image', !!book.coverImage);
+  el.style.setProperty('--c1', `hsl(${hue} 42% 40%)`);
+  el.style.setProperty('--c2', `hsl(${(hue + 28) % 360} 48% 26%)`);
+  el.dataset.text = s.text;
+  const label = s.text === 'none' ? '' : s.text === 'title' ? title : coverLabel(title);
+  el.innerHTML = `<span class="cover-text">${escapeHtml(label)}</span>`;
+  if (book.coverImage) {
+    const img = document.createElement('img');
+    img.className = 'cover-img';
+    img.alt = '';
+    el.appendChild(img);
+    db.getCover(book.id).then((blob) => {
+      if (!blob || !img.isConnected) return;
+      const url = URL.createObjectURL(blob);
+      state.coverUrls.push(url);
+      img.src = url;
+    });
+  }
+}
+function revokeCoverUrls() {
+  for (const url of state.coverUrls) URL.revokeObjectURL(url);
+  state.coverUrls = [];
+}
+
+/**
+ * 표지용으로 이미지를 줄인다: 5:7 비율로 가운데를 잘라 320×448, WebP(안 되면 JPEG).
+ * EXIF 회전은 createImageBitmap이 처리한다.
+ */
+async function shrinkCoverImage(file) {
+  const W = 320;
+  const H = 448;
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  try {
+    const scale = Math.max(W / bmp.width, H / bmp.height);
+    const sw = Math.min(bmp.width, W / scale);
+    const sh = Math.min(bmp.height, H / scale);
+    const sx = (bmp.width - sw) / 2;
+    const sy = (bmp.height - sh) / 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, W, H);
+    const toBlob = (type, q) => new Promise((resolve) => canvas.toBlob(resolve, type, q));
+    let blob = await toBlob('image/webp', 0.82);
+    if (!blob || blob.type !== 'image/webp') blob = await toBlob('image/jpeg', 0.85);
+    return blob;
+  } finally {
+    bmp.close();
+  }
+}
+
+/** 표지 시트. 조작은 즉시 저장하고 서재를 다시 그린다. */
+function openCoverSheet(book) {
+  state.coverBook = book;
+  const preview = $('#cover-preview');
+  const swatches = $('#cover-swatches');
+  if (!swatches.childElementCount) {
+    const auto = document.createElement('button');
+    auto.type = 'button';
+    auto.className = 'swatch auto';
+    auto.dataset.hue = 'auto';
+    auto.setAttribute('aria-label', '자동');
+    swatches.appendChild(auto);
+    for (const h of COVER_HUES) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch';
+      b.dataset.hue = String(h);
+      b.style.setProperty('--sw', `hsl(${h} 42% 40%)`);
+      b.setAttribute('aria-label', `색 ${h}`);
+      swatches.appendChild(b);
+    }
+  }
+  const sync = () => {
+    const s = coverSpec(book);
+    applyCover(preview, book);
+    for (const el of $('#cover-style-row').querySelectorAll('.chip')) el.classList.toggle('active', el.dataset.coverStyle === s.style);
+    for (const el of $('#cover-text-row').querySelectorAll('.chip')) el.classList.toggle('active', el.dataset.coverText === s.text);
+    for (const el of swatches.children) el.classList.toggle('active', el.dataset.hue === (s.hue == null ? 'auto' : String(s.hue)));
+    // 사진이 있으면 스타일과 글자는 의미가 없다
+    $('#cover-style-row').classList.toggle('disabled', !!book.coverImage);
+    $('#cover-text-row').classList.toggle('disabled', !!book.coverImage);
+    $('#cover-clear-image').hidden = !book.coverImage;
+  };
+  const save = async () => {
+    await db.putBook({ ...book });
+    sync();
+    await renderLibrary();
+  };
+  const setCover = (patch) => {
+    book.cover = { ...coverSpec(book), ...patch };
+    if (book.cover.hue == null) delete book.cover.hue;
+    return save();
+  };
+  $('#cover-style-row').onclick = (e) => {
+    const chip = e.target.closest('[data-cover-style]');
+    if (chip) setCover({ style: chip.dataset.coverStyle });
+  };
+  $('#cover-text-row').onclick = (e) => {
+    const chip = e.target.closest('[data-cover-text]');
+    if (chip) setCover({ text: chip.dataset.coverText });
+  };
+  swatches.onclick = (e) => {
+    const sw = e.target.closest('[data-hue]');
+    if (sw) setCover({ hue: sw.dataset.hue === 'auto' ? null : Number(sw.dataset.hue) });
+  };
+  $('#cover-pick').onclick = () => $('#cover-input').click();
+  $('#cover-input').onchange = async () => {
+    const input = $('#cover-input');
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const blob = await shrinkCoverImage(file);
+      if (!blob) throw new Error('encode');
+      const free = await storageFree();
+      if (free !== null && free < blob.size * 2) {
+        toast(STORAGE_FULL_MSG, 5000);
+        return;
+      }
+      await db.putCover(book.id, blob);
+      book.coverImage = true;
+      await save(); // 미리보기가 바로 바뀌므로 토스트는 띄우지 않는다 (시트 위에 겹친다)
+    } catch (err) {
+      console.error(err);
+      toast(isStorageFull(err) ? STORAGE_FULL_MSG : '이미지를 읽지 못했습니다', 4000);
+    }
+  };
+  $('#cover-web').onclick = () => {
+    const q = encodeURIComponent(`${bookDisplayTitle(book)} 책 표지`);
+    window.open(`https://www.google.com/search?tbm=isch&q=${q}`, '_blank', 'noopener');
+  };
+  $('#cover-clear-image').onclick = async () => {
+    await db.deleteCover(book.id);
+    book.coverImage = false;
+    await save();
+  };
+  $('#cover-reset').onclick = async () => {
+    if (book.coverImage) await db.deleteCover(book.id);
+    delete book.cover;
+    book.coverImage = false;
+    await save();
+  };
+  sync();
+  openOverlay('ov-cover', () => { state.coverBook = null; });
 }
 
 // 화면 꺼짐 방지: 뷰어가 보이고 설정이 켜져 있을 때만 잠금을 잡는다.
@@ -292,6 +464,7 @@ async function showLibrary() {
 async function renderLibrary() {
   const books = await db.listBooks();
   const list = $('#book-list');
+  revokeCoverUrls(); // 이전 렌더의 표지 이미지 URL은 여기서 놓는다
   list.innerHTML = '';
   $('#library-empty').hidden = books.length > 0;
   renderStorageNote(books);
@@ -305,15 +478,15 @@ async function renderLibrary() {
     li.dataset.id = b.id;
     const pct = Math.round((b.progress || 0) * 1000) / 10;
     const title = bookDisplayTitle(b);
-    const hue = hashHue(b.title);
     li.innerHTML = `
-      <div class="book-cover" style="--c1: hsl(${hue} 42% 40%); --c2: hsl(${(hue + 28) % 360} 48% 26%)"><span>${escapeHtml(coverLabel(title))}</span></div>
+      <div class="book-cover"></div>
       <div class="book-main">
         <div class="book-title">${escapeHtml(title)}</div>
         <div class="book-meta">${pct}% · ${formatBytes(b.size)} · ${formatDate(b.lastOpenedAt)}</div>
         <div class="book-progress"><span style="width:${pct}%"></span></div>
       </div>
       <button class="icon-btn book-more" aria-label="파일 메뉴"><svg><use href="#i-more"/></svg></button>`;
+    applyCover(li.querySelector('.book-cover'), b);
     li.addEventListener('click', () => goBook(b.id));
     li.querySelector('.book-more').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -332,11 +505,7 @@ function renderHero(b) {
   if (!b) return;
   el.dataset.id = b.id;
   const title = bookDisplayTitle(b);
-  const hue = hashHue(b.title);
-  const cover = $('#hero-cover');
-  cover.style.setProperty('--c1', `hsl(${hue} 42% 40%)`);
-  cover.style.setProperty('--c2', `hsl(${(hue + 28) % 360} 48% 26%)`);
-  $('#hero-monogram').textContent = coverLabel(title);
+  applyCover($('#hero-cover'), b);
   const progress = b.progress || 0;
   const pct = Math.round(progress * 1000) / 10;
   const done = progress >= 0.995;
@@ -360,6 +529,10 @@ function openItemMenu(book) {
   $('#item-rename').onclick = () => {
     closeOverlay();
     setTimeout(() => openRename(book), 30);
+  };
+  $('#item-cover').onclick = () => {
+    closeOverlay();
+    setTimeout(() => openCoverSheet(book), 30);
   };
   $('#item-restart').onclick = async () => {
     closeOverlay();

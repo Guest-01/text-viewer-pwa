@@ -1,6 +1,6 @@
-// IndexedDB 래퍼: books(메타데이터) / contents(원본 ArrayBuffer)
+// IndexedDB 래퍼: books(메타데이터) / contents(원본 ArrayBuffer) / covers(표지 이미지 Blob)
 const DB_NAME = 'text-viewer';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // 2: covers 저장소 추가
 let dbPromise = null;
 
 function open() {
@@ -15,6 +15,9 @@ function open() {
       }
       if (!db.objectStoreNames.contains('contents')) {
         db.createObjectStore('contents', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('covers')) {
+        db.createObjectStore('covers', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -75,8 +78,30 @@ export async function getContent(id) {
 
 export async function deleteBook(id) {
   const db = await open();
-  const tx = db.transaction(['books', 'contents'], 'readwrite');
+  const tx = db.transaction(['books', 'contents', 'covers'], 'readwrite');
   tx.objectStore('books').delete(id);
   tx.objectStore('contents').delete(id);
+  tx.objectStore('covers').delete(id);
+  return done(tx);
+}
+
+// ---------- 표지 이미지 (책 id당 Blob 하나) ----------
+export async function putCover(id, blob) {
+  const db = await open();
+  const tx = db.transaction('covers', 'readwrite');
+  tx.objectStore('covers').put({ id, blob });
+  return done(tx);
+}
+
+export async function getCover(id) {
+  const db = await open();
+  const row = await request(db.transaction('covers', 'readonly').objectStore('covers').get(id));
+  return row ? row.blob : null;
+}
+
+export async function deleteCover(id) {
+  const db = await open();
+  const tx = db.transaction('covers', 'readwrite');
+  tx.objectStore('covers').delete(id);
   return done(tx);
 }
