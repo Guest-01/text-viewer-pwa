@@ -88,10 +88,14 @@
           <svg class="install-logo" aria-hidden="true"><use href="#i-logo"/></svg>
           <div class="install-text">
             <p class="install-title">앱으로 설치하면 화면 전체로 읽습니다</p>
-            <p class="install-body">주소창과 브라우저 메뉴 없이 책만 남고, <span class="share-only">파일 관리자에서 공유로 바로 보내며, </span>오프라인에서도 열립니다.</p>
+            <p class="install-body" id="install-body">주소창과 브라우저 메뉴 없이 책만 남고, <span class="share-only">파일 관리자에서 공유로 바로 보내며, </span>오프라인에서도 열립니다.</p>
+            <!-- 삼성 인터넷에서만 (app.js): Chrome 설치를 권하고 "여기서 설치"를 보조로 남긴다 -->
+            <p class="install-body" id="install-body-samsung" hidden>삼성 인터넷으로 설치하면 Play 프로텍트 경고가 뜨고 화면 위아래에 검은 띠가 남습니다. Chrome으로 설치하면 이런 문제가 없습니다. 여기서 넣어 둔 책은 Chrome으로 옮겨지지 않습니다.</p>
             <div class="install-actions">
               <button type="button" class="btn-link" id="install-later">나중에</button>
+              <button type="button" class="btn-link" id="install-here" hidden>여기서 설치</button>
               <button type="button" class="btn-text" id="install-now"><svg><use href="#i-download"/></svg>설치</button>
+              <button type="button" class="btn-text" id="install-chrome" hidden><svg><use href="#i-open"/></svg>Chrome에서 설치</button>
             </div>
           </div>
         </div>

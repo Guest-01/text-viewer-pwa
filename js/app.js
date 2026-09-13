@@ -1220,14 +1220,16 @@ function inAppBrowser() {
 function externalBrowserUrl(inApp, target) {
   if (inApp.app === 'kakao') return 'kakaotalk://web/openExternal?url=' + encodeURIComponent(target); // 비공식이지만 널리 쓰이는 스킴, Android·iOS 모두
   if (inApp.app === 'line') { const u = new URL(target); u.searchParams.set('openExternalBrowser', '1'); return u.href; } // 라인 공식 파라미터
-  if (inApp.android) {
-    // Chrome 공식 intent 스킴. 사용자 제스처 안에서만 열리고, 지정한 브라우저가 없으면 fallback 주소로 돌아온다.
-    // 삼성 기기(모델명 SM-)는 기본 탑재된 삼성 인터넷을, 그 외는 Chrome을 연다
-    const u = new URL(target);
-    const pkg = /\bSM-/.test(navigator.userAgent) ? 'com.sec.android.app.sbrowser' : 'com.android.chrome';
-    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=${pkg};S.browser_fallback_url=${encodeURIComponent(target)};end`;
-  }
+  if (inApp.android) return chromeIntentUrl(target);
   return null;
+}
+
+// Android에서 target을 Chrome으로 여는 intent 주소 (Chrome 공식 스킴). 사용자 제스처 안에서만 열리고,
+// Chrome이 없으면 fallback 주소로 돌아온다. 삼성 기기에서도 Chrome을 고른다: 삼성 인터넷의 WebAPK는
+// Play 프로텍트 경고(targetSdk가 낮음)와 시스템 바 검은 띠가 남아 설치 경험이 나쁘다.
+function chromeIntentUrl(target) {
+  const u = new URL(target);
+  return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(target)};end`;
 }
 
 // ---------- 공유 받은 파일 ----------
@@ -1414,6 +1416,19 @@ async function init() {
   });
   $('#btn-install').addEventListener('click', promptInstall);
   $('#install-now').addEventListener('click', promptInstall);
+  $('#install-here').addEventListener('click', promptInstall);
+  // 삼성 인터넷: 자체 WebAPK가 Play 프로텍트에 막히고 시스템 바가 검게 남으므로 Chrome에서 설치하도록 이끈다.
+  // 여기서 설치하고 싶은 사람을 위해 "여기서 설치"는 남긴다. (chromeIntentUrl 참고)
+  if (/SamsungBrowser/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent)) {
+    $('#install-body').hidden = true;
+    $('#install-body-samsung').hidden = false;
+    $('#install-now').hidden = true;
+    $('#install-here').hidden = false;
+    $('#install-chrome').hidden = false;
+    $('#install-chrome').addEventListener('click', () => {
+      location.href = chromeIntentUrl(new URL('./', location.href).href);
+    });
+  }
   $('#install-later').addEventListener('click', () => {
     localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
     $('#install-card').hidden = true;
