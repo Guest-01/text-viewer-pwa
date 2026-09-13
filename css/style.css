@@ -56,6 +56,9 @@
   --shadow-2: 0 4px 14px rgba(40, 30, 15, 0.14), 0 1px 3px rgba(40, 30, 15, 0.08);
   --shadow-sheet: 0 -12px 40px rgba(40, 30, 15, 0.14);
   --scrim: rgba(30, 24, 16, 0.42);
+  /* 넘김 중 화면 경계에 드리우는 종이 그림자 */
+  --edge: rgba(40, 30, 15, 0.24);
+  --edge-soft: rgba(40, 30, 15, 0.06);
   --font-sans: "TV Sans", Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   --font-serif: "TV Serif", "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", "Apple Myungjo", Batang, serif;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -83,6 +86,8 @@
   --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-sheet: 0 -12px 40px rgba(0, 0, 0, 0.5);
   --scrim: rgba(0, 0, 0, 0.55);
+  --edge: rgba(0, 0, 0, 0.7);
+  --edge-soft: rgba(0, 0, 0, 0.25);
 }
 
 * { box-sizing: border-box; }
@@ -214,9 +219,34 @@ h1, h2 { margin: 0; font-weight: 700; }
   font-family: var(--font-sans);
   user-select: none; -webkit-user-select: none;
   -webkit-touch-callout: none;
-  animation: viewport-in 0.32s var(--ease-out);
+  background: var(--bg); /* 화면 전환에서 본문이 한 장의 종이처럼 잡히도록 바탕을 가진다 */
 }
+/* 화면 전환 없이 열릴 때(첫 실행 자동 이어읽기, 미지원 브라우저)만 살짝 떠오른다 (app.js가 enter를 붙였다 뗀다) */
+.viewport.enter { animation: viewport-in 0.32s var(--ease-out); }
 @keyframes viewport-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 화면 전환 (View Transitions) ----------
+   서재 ↔ 뷰어: 누른 표지가 본문으로 커지고, 돌아올 때는 본문이 표지로 줄어든다 (app.js screenTransition).
+   미지원 브라우저는 즉시 바뀐다. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.26s; animation-timing-function: var(--ease-out); }
+::view-transition-group(book) {
+  animation-duration: 0.44s; animation-timing-function: var(--ease-out);
+  z-index: 2; border-radius: 4px; box-shadow: var(--shadow-2);
+  background: var(--bg); /* 표지와 본문이 교차하는 동안 뒤가 비치지 않게 종이색 바탕을 깐다 */
+}
+::view-transition-old(book), ::view-transition-new(book) {
+  width: 100%; height: 100%; object-fit: cover; mix-blend-mode: normal;
+  animation: none; opacity: 1;
+}
+/* 표지 스냅샷은 크게 늘리면 흐려지므로 상자가 작을 때만 보인다:
+   들어갈 때는 본문이 곧바로 위에 떠오르고, 돌아올 때는 표지가 마지막에 나타난다. */
+@keyframes vt-in { from { opacity: 0; } to { opacity: 1; } }
+:root.vt-open::view-transition-old(book) { animation: vt-in 0.1s ease-out reverse both; }
+:root.vt-open::view-transition-new(book) { animation: vt-in 0.14s ease-out both; }
+:root.vt-close::view-transition-new(book) { animation: vt-in 0.16s 0.26s ease-out both; }
+/* 짝이 없을 때(표지가 목록에 없는 책에서 돌아올 때 등)는 그냥 사라지거나 나타난다 */
+::view-transition-old(book):only-child { animation: vt-in 0.26s ease-out reverse both; }
+::view-transition-new(book):only-child { animation: vt-in 0.26s ease-out both; }
 .viewport[data-font="serif"] { font-family: var(--font-serif); }
 .viewport[data-justify="1"] p { text-align: justify; }
 .viewport.mode-page { touch-action: none; }
@@ -253,10 +283,33 @@ h1, h2 { margin: 0; font-weight: 700; }
     calc(var(--margin) + env(safe-area-inset-right, 0px))
     calc(var(--margin) + 8px + env(safe-area-inset-bottom, 0px))
     calc(var(--margin) + env(safe-area-inset-left, 0px));
-  overflow: hidden;
+  /* 자르지 않는다. 좌우는 스테이지의 clip-path가, 바깥은 .reader의 overflow가 맡는다. */
 }
-.stage { position: relative; width: 100%; height: 100%; overflow: hidden; }
+/* 스테이지는 좌우(다른 화면의 컬럼)만 자른다. 위아래는 열어 두어 트랙의 그늘이 화면 끝까지 닿게 한다. */
+.stage { position: relative; width: 100%; height: 100%; clip-path: inset(-200px 0); }
 .track { position: absolute; left: 0; top: 0; height: 100%; min-width: 100%; will-change: transform; }
+/* 트랙의 의사 요소는 종이와 함께 움직인다. 위치 값(--stride, --page-w, --mid)은 reader.js _measure가 트랙에 준다. */
+.track::before, .track::after { content: ""; position: absolute; left: 0; right: 0; pointer-events: none; z-index: 1; }
+/* 2쪽 보기 접힘선: 펼침면 가운데의 얇은 선. 본문 높이만큼만 긋는다. */
+.track::before { display: none; top: 0; bottom: 0; }
+.viewport[data-cols="2"] .track::before {
+  display: block;
+  background: repeating-linear-gradient(to right,
+    transparent 0, transparent calc(var(--mid) - 0.5px),
+    var(--border) calc(var(--mid) - 0.5px), var(--border) calc(var(--mid) + 0.5px),
+    transparent calc(var(--mid) + 0.5px), transparent var(--stride));
+}
+/* 넘김 중 화면 경계: 나가는 쪽 가장자리가 어두워지고 들어오는 쪽에 그림자가 드리운다. 트랙은 본문 여백 안쪽이라
+   위아래로 200px씩 내밀어 화면 끝까지 잇는다 (스테이지는 좌우만 자르므로 잘리지 않는다).
+   농도(--shade)는 reader.js가 넘김 진행도에 맞춰 0→1→0으로 매 프레임 준다. 멈춰 있으면 0. */
+.track::after {
+  top: -200px; bottom: -200px;
+  opacity: var(--shade, 0);
+  background: repeating-linear-gradient(to right,
+    var(--edge-soft) 0, transparent 28px,
+    transparent calc(var(--page-w) - 34px), var(--edge) calc(var(--page-w) + 20px),
+    var(--edge-soft) var(--stride));
+}
 .pages {
   column-fill: auto;
 }
@@ -556,4 +609,5 @@ input[type="range"].slider::-moz-range-thumb {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

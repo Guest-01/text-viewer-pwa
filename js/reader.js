@@ -7,8 +7,8 @@ import { findBlock, chunkOfBlock, chunkRange, blockText, KIND_HEADING, KIND_TITL
 const GAP = 40; // 컬럼(페이지) 사이 간격 px. 2쪽 보기에서는 가운데 여백이 된다.
 const MAX_SCROLL_CHUNKS = 5;
 const SPREAD_MIN_WIDTH = 600; // 자동 모드에서 2쪽 보기로 전환하는 최소 너비 px
-const TURN_MS = 280; // 탭/키보드 페이지 넘김 시간
-const TURN_EASE = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+const TURN_MS = 320; // 탭/키보드 페이지 넘김 시간
+const TURN_EASE = 'cubic-bezier(0.3, 0.7, 0.2, 1)'; // 부드럽게 출발해 길게 감속
 const DRAG_START_PX = 8; // 이 이상 움직여야 드래그로 인식
 const FLICK_VELOCITY = 0.3; // px/ms. 이보다 빠르면 거리와 무관하게 넘긴다
 const COMMIT_RATIO = 0.25; // 화면 너비 대비 이 비율 이상 끌면 넘긴다
@@ -441,15 +441,21 @@ export class Reader {
     s.columnWidth = `${this.cols > 1 ? this.colW - 1 : this.W}px`;
     s.columnGap = `${GAP}px`;
     this.viewport.dataset.cols = String(this.cols);
-    // 2쪽 보기 접힘선: 화면 간격(stride)마다 가운데에 1px 선을 반복해 그린다.
+    // 2쪽 보기 접힘선과 넘김 중 종이 가장자리 그림자는 CSS(.track::before/::after)가 이 값으로 그린다.
     const t = this.track.style;
-    if (this.cols === 2) {
-      const mid = this.W / 2;
-      const stride = this._screenStride();
-      t.backgroundImage = `repeating-linear-gradient(to right, transparent 0, transparent ${mid - 0.5}px, var(--border) ${mid - 0.5}px, var(--border) ${mid + 0.5}px, transparent ${mid + 0.5}px, transparent ${stride}px)`;
-    } else {
-      t.backgroundImage = 'none';
-    }
+    t.setProperty('--stride', `${this._screenStride()}px`);
+    t.setProperty('--page-w', `${this.W}px`);
+    t.setProperty('--mid', `${this.W / 2}px`);
+  }
+
+  /** 트랙 위치 x에 맞춘 넘김 그림자 농도: 화면 경계가 한가운데 올 때 가장 짙고(1), 제자리에 멈추면 0 */
+  _updateShade(x) {
+    const t = -x / this._screenStride();
+    this.viewport.style.setProperty('--shade', Math.sin((t - Math.floor(t)) * Math.PI).toFixed(3));
+  }
+
+  _clearShade() {
+    this.viewport.style.setProperty('--shade', '0');
   }
 
   _colStride() {
@@ -584,6 +590,7 @@ export class Reader {
     if (!this._anim) return;
     this.track.removeEventListener('transitionend', this._anim.onEnd);
     clearTimeout(this._anim.timer);
+    cancelAnimationFrame(this._anim.raf);
     this._anim = null;
   }
 
@@ -592,6 +599,7 @@ export class Reader {
     this._cancelAnim();
     if (Math.abs(from - x) < 0.5) {
       this._setX(x);
+      this._clearShade();
       done();
       return;
     }
@@ -604,13 +612,20 @@ export class Reader {
     const finish = () => {
       this._cancelAnim();
       track.style.transition = 'none';
+      this._clearShade();
       done();
     };
     const onEnd = (e) => {
       if (e.target === track && e.propertyName === 'transform') finish();
     };
+    // 그림자 농도는 실제 그려진 위치를 따라 매 프레임 갱신한다
+    const tick = () => {
+      if (!this._anim) return;
+      this._updateShade(this._currentX());
+      this._anim.raf = requestAnimationFrame(tick);
+    };
     track.addEventListener('transitionend', onEnd);
-    this._anim = { onEnd, timer: setTimeout(finish, ms + 100) };
+    this._anim = { onEnd, timer: setTimeout(finish, ms + 100), raf: requestAnimationFrame(tick) };
   }
 
   /** 화면 s로 이동. ms가 0이면 즉시, 아니면 해당 시간 동안 애니메이션 */
@@ -627,6 +642,7 @@ export class Reader {
     } else {
       this._cancelAnim();
       this._setX(x);
+      this._clearShade();
     }
   }
 
@@ -892,6 +908,7 @@ export class Reader {
       d.lastX = e.clientX;
       d.lastT = e.timeStamp;
       this._setX(this._rubber(d.baseX + dx));
+      this._updateShade(this._x);
     });
 
     const release = (e) => {

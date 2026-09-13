@@ -144,6 +144,44 @@ function goLibrary() {
   route();
 }
 
+// ---------- 화면 전환 ----------
+// 서재 ↔ 뷰어는 View Transitions API로 잇는다. 누른 표지와 본문(viewport)에 같은 이름을 붙이면
+// 표지가 본문으로 커지고, 돌아올 때는 본문이 표지로 줄어든다. 미지원 브라우저와 움직임 줄이기
+// 설정에서는 그냥 바꾼다. 이름은 한 번에 한 쌍만 있어야 하므로 전환이 끝나면 지운다.
+let vtNamed = [];
+function nameForTransition(el) {
+  if (!el) return false;
+  el.style.viewTransitionName = 'book';
+  vtNamed.push(el);
+  return true;
+}
+function coverOf(id) {
+  return id ? $(`#book-list .book[data-id="${CSS.escape(id)}"] .book-cover`) : null;
+}
+function clearTransitionNames() {
+  for (const el of vtNamed) el.style.viewTransitionName = '';
+  vtNamed = [];
+}
+/** dir: 'open'(서재→뷰어) | 'close'(뷰어→서재). CSS가 방향에 따라 표지·본문의 페이드 순서를 정한다. */
+function canScreenTransition() {
+  return typeof document.startViewTransition === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function screenTransition(dir, update) {
+  const can = canScreenTransition();
+  if (!can) {
+    clearTransitionNames();
+    return Promise.resolve(update());
+  }
+  const root = document.documentElement;
+  root.classList.add('vt', `vt-${dir}`);
+  const t = document.startViewTransition(update);
+  t.finished.catch(() => {}).then(() => {
+    root.classList.remove('vt', `vt-${dir}`);
+    clearTransitionNames();
+  });
+  return t.updateCallbackDone.catch(() => {});
+}
+
 // ---------- 저장 공간 ----------
 // 책 원본은 브라우저 저장소(IndexedDB)에만 있다. 기본적으로 기기 공간이 부족하면 브라우저가 지울 수 있으므로
 // 첫 책을 넣을 때 영구 저장을 요청하고, 서재 아래에 사용량과 보호 여부를 한 줄로 보여 준다.
@@ -230,10 +268,27 @@ async function checkFileSize(bytes, name) {
 
 // ---------- 서재 ----------
 async function showLibrary() {
-  closeReaderScreen();
-  $('#reader').hidden = true;
-  $('#library').hidden = false;
-  document.body.dataset.screen = 'library';
+  // 뷰어에서 돌아오는 길이면 본문이 서재의 표지로 줄어드는 전환을 건다. 이전 화면(본문)은 전환 시작 시점에
+  // 찍히므로, 뷰어를 비우는 일은 전환 콜백 안에서 한다.
+  const fromReader = !$('#reader').hidden;
+  const lastId = fromReader && state.book ? state.book.id : null;
+  const update = async () => {
+    closeReaderScreen();
+    $('#reader').hidden = true;
+    $('#library').hidden = false;
+    document.body.dataset.screen = 'library';
+    await renderLibrary();
+    if (lastId) nameForTransition(coverOf(lastId));
+  };
+  if (!fromReader) {
+    await update(); // 서재 안에서의 갱신(삭제·제목 바꾸기)은 전환 없이 바로
+    return;
+  }
+  nameForTransition($('#viewport'));
+  await screenTransition('close', update);
+}
+
+async function renderLibrary() {
   const books = await db.listBooks();
   const list = $('#book-list');
   list.innerHTML = '';
@@ -438,17 +493,32 @@ async function openReader(id) {
     goLibrary();
     return;
   }
-  state.book = book;
-  state.buffer = buffer;
-  $('#library').hidden = true;
-  $('#reader').hidden = false;
-  document.body.dataset.screen = 'reader';
-  $('#reader-title').textContent = bookDisplayTitle(book);
-  $('#reader-chapter').textContent = '';
-  state.speed.lastPos = null;
-  setBarsVisible(false);
-  applyReaderStyle();
-  decodeAndLoad(book.position || 0);
+  // 서재에서 들어오는 길이면 누른 표지가 본문으로 커지는 전환을 건다 (표지가 목록에 없으면 페이드만).
+  const fromLibrary = !$('#library').hidden;
+  const shared = fromLibrary && nameForTransition(coverOf(id));
+  const show = () => {
+    state.book = book;
+    state.buffer = buffer;
+    $('#library').hidden = true;
+    $('#reader').hidden = false;
+    document.body.dataset.screen = 'reader';
+    if (shared) nameForTransition($('#viewport'));
+    $('#reader-title').textContent = bookDisplayTitle(book);
+    $('#reader-chapter').textContent = '';
+    state.speed.lastPos = null;
+    setBarsVisible(false);
+    applyReaderStyle();
+    decodeAndLoad(book.position || 0);
+    if (!fromLibrary || !canScreenTransition()) {
+      // 화면 전환이 없을 때만 본문이 살짝 떠오른다 (전환과 겹치면 끝난 뒤 한 번 더 깜박여 보인다).
+      // 뷰어가 className을 새로 쓰므로 load 뒤에 붙인다.
+      const vp = $('#viewport');
+      vp.classList.add('enter');
+      setTimeout(() => vp.classList.remove('enter'), 400);
+    }
+  };
+  if (fromLibrary) await screenTransition('open', show);
+  else show();
   book.lastOpenedAt = Date.now();
   db.putBook(book);
   localStorage.setItem(LAST_BOOK_KEY, id);
