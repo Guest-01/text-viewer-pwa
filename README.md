@@ -61,6 +61,10 @@ npm run start:lan
 2. HTTPS 터널: `npx cloudflared tunnel --url http://localhost:8080` 또는 `npx localtunnel --port 8080` 으로 임시 HTTPS 주소를 만듭니다.
 3. 정적 호스팅: GitHub Pages, Cloudflare Pages 등에 폴더를 그대로 올립니다. 상대 경로만 사용하므로 하위 경로 배포도 됩니다.
 
+## 배포 (GitHub Pages)
+
+빌드 단계가 없으므로 Actions 없이 브랜치에서 바로 배포합니다. 저장소 Settings → Pages → Source를 "Deploy from a branch", 브랜치 `main`, 폴더 `/ (root)`로 두면 `main`에 push할 때마다 반영됩니다. 루트의 빈 `.nojekyll`은 Pages의 Jekyll 처리를 건너뛰게 하는 표식이니 지우지 마세요. `server.js`와 `scripts/`도 함께 올라가지만 정적 파일로만 제공되므로 문제 없습니다.
+
 ## 스크립트
 
 | 명령 | 설명 |
