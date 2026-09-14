@@ -19,6 +19,7 @@ const PRESETS = {
 };
 const GUIDE_KEY = 'tv.guideShown';
 const INSTALL_DISMISSED_KEY = 'tv.installDismissed'; // 설치 안내 카드에서 "나중에"를 눌렀음
+const INAPP_ESCAPE_STEP_KEY = 'tv.inappEscapeStep'; // 인앱 브라우저 탈출에서 다음에 시도할 방법의 번호 (세션 한정)
 const APP_VERSION = '0.1.0'; // package.json의 version과 함께 올린다
 const SPEED_KEY = 'tv.readSpeed'; // 분당 글자 수 (지수 이동 평균)
 const DEFAULT_CPM = 600;
@@ -1216,12 +1217,15 @@ function inAppBrowser() {
   return app ? { app, android, ios } : null;
 }
 
-// 인앱 브라우저에서 외부 브라우저로 target을 여는 주소. 방법이 없으면 null (iOS 일반 WebView).
-function externalBrowserUrl(inApp, target) {
-  if (inApp.app === 'kakao') return 'kakaotalk://web/openExternal?url=' + encodeURIComponent(target); // 비공식이지만 널리 쓰이는 스킴, Android·iOS 모두
-  if (inApp.app === 'line') { const u = new URL(target); u.searchParams.set('openExternalBrowser', '1'); return u.href; } // 라인 공식 파라미터
-  if (inApp.android) return chromeIntentUrl(target);
-  return null;
+// 인앱 브라우저에서 외부 브라우저로 target을 여는 주소들. 앞에서부터 차례로 시도한다. 비어 있으면 방법이 없는 것 (iOS 일반 WebView).
+// Android는 어느 인앱 브라우저든 Chrome intent를 먼저 쓴다: 카카오톡·라인의 자체 탈출 방법은 "기본 브라우저"로 열어 주므로
+// 삼성 기기에서는 삼성 인터넷이 뜨기 때문이다. Chrome이 없거나 막히면 그 방법으로 넘어간다.
+function externalBrowserUrls(inApp, target) {
+  const urls = [];
+  if (inApp.android) urls.push(chromeIntentUrl(target));
+  if (inApp.app === 'kakao') urls.push('kakaotalk://web/openExternal?url=' + encodeURIComponent(target)); // 비공식이지만 널리 쓰이는 스킴, Android·iOS 모두
+  if (inApp.app === 'line') { const u = new URL(target); u.searchParams.set('openExternalBrowser', '1'); urls.push(u.href); } // 라인 공식 파라미터
+  return urls;
 }
 
 // Android에서 target을 Chrome으로 여는 intent 주소 (Chrome 공식 스킴). 사용자 제스처 안에서만 열리고,
@@ -1440,16 +1444,28 @@ async function init() {
   const inApp = inAppBrowser();
   if (inApp && !isStandalone()) {
     $('#inapp-card').hidden = false;
+    const target = new URL('./', location.href).href; // 서재 루트, 해시·쿼리 없이
     $('#inapp-open').addEventListener('click', async () => {
-      const target = new URL('./', location.href).href; // 서재 루트, 해시·쿼리 없이
       // 스킴이 막히면 붙여넣게 하려고 제스처 안에서 미리 복사해 둔다
       try { await navigator.clipboard?.writeText(target); } catch {}
-      const escape = externalBrowserUrl(inApp, target);
-      if (!escape) { showInAppFallback(); return; }
-      // 외부 브라우저가 열리면 이 페이지는 가려진다. 1.5초 뒤에도 그대로 보이면 스킴이 막힌 것
-      setTimeout(() => { if (document.visibilityState === 'visible') showInAppFallback(); }, 1500);
-      location.href = escape;
+      tryEscape(externalBrowserUrls(inApp, target), 0);
     });
+    // 외부 브라우저가 실제로 열리면 이 페이지가 가려진다. 그때 진행 단계를 지워 다음에 눌러도 다시 Chrome부터 시도하게 한다
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') sessionStorage.removeItem(INAPP_ESCAPE_STEP_KEY);
+    });
+    // 진행 단계가 남은 채 페이지가 새로 떴다면 앞선 시도가 페이지를 다시 불러온 것이다
+    // (Chrome이 없어 intent의 fallback 주소로 돌아온 경우). 다시 누르게 하지 않고 바로 다음 방법을 이어간다.
+    const resumeStep = Number(sessionStorage.getItem(INAPP_ESCAPE_STEP_KEY)) || 0;
+    if (resumeStep > 0) tryEscape(externalBrowserUrls(inApp, target), resumeStep);
+  }
+  // urls[step]으로 탈출을 시도한다. 1.5초 뒤에도 이 페이지가 그대로 보이면 그 방법이 막힌 것이니 다음 방법으로,
+  // 방법이 다 떨어지면 주소 붙여넣기 안내로 넘어간다.
+  function tryEscape(urls, step) {
+    if (step >= urls.length) { sessionStorage.removeItem(INAPP_ESCAPE_STEP_KEY); showInAppFallback(); return; }
+    sessionStorage.setItem(INAPP_ESCAPE_STEP_KEY, String(step + 1));
+    setTimeout(() => { if (document.visibilityState === 'visible') tryEscape(urls, step + 1); }, 1500);
+    location.href = urls[step];
   }
   function showInAppFallback() {
     $('#inapp-body').hidden = true;
@@ -1498,7 +1514,7 @@ async function init() {
     history.replaceState(null, '', location.pathname);
     if (await importSharedFiles()) return;
   }
-  // 라인 인앱에서 외부 브라우저로 나올 때 붙인 표식은 주소에서 지운다 (externalBrowserUrl 참고)
+  // 라인 인앱에서 외부 브라우저로 나올 때 붙인 표식은 주소에서 지운다 (externalBrowserUrls 참고)
   if (params.has('openExternalBrowser')) history.replaceState(null, '', location.pathname);
 
   // 마지막 책 이어읽기
